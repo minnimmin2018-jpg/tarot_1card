@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>운세 웹앱 데모 모음</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100vh;
+    background:linear-gradient(135deg,#0d0221 0%,#1a0533 45%,#0d1b4b 100%);
+    font-family:'Malgun Gothic',sans-serif; color:#f0e6ff;
+    display:flex; flex-direction:column; align-items:center;
+    padding:60px 20px;
+  }
+  h1 {
+    font-size:2rem; text-align:center; margin-bottom:8px;
+    background:linear-gradient(90deg,#c9a96e,#f5d78e,#c9a96e);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text; letter-spacing:2px;
+  }
+  .sub { color:#b39ddb; font-size:0.95rem; margin-bottom:44px; text-align:center; }
+  .cards { display:grid; gap:18px; width:100%; max-width:460px; }
+  .demo-card {
+    display:block; text-decoration:none; color:#f0e6ff;
+    background:rgba(255,255,255,0.05); border:1px solid rgba(201,169,110,0.3);
+    border-radius:16px; padding:24px 26px; transition:all 0.2s;
+  }
+  .demo-card:hover {
+    background:rgba(201,169,110,0.12); border-color:#c9a96e;
+    transform:translateY(-3px);
+  }
+  .demo-icon { font-size:2rem; margin-bottom:10px; }
+  .demo-title { font-size:1.15rem; font-weight:bold; color:#f5d78e; margin-bottom:6px; }
+  .demo-desc { font-size:0.85rem; color:#d4c5f9; line-height:1.6; }
+  .foot { margin-top:40px; font-size:0.78rem; color:#8a7bb0; text-align:center; }
+</style>
+</head>
+<body>
+  <h1>🔮 운세 웹앱 데모</h1>
+  <p class="sub">아래 항목을 클릭하면 실제 작동 화면을 볼 수 있습니다</p>
+
+  <div class="cards">
+    <a class="demo-card" href="unse.html">
+      <div class="demo-icon">✨</div>
+      <div class="demo-title">운세 상담소 (올인원 통합본)</div>
+      <div class="demo-desc">사주·타로·별자리·궁합·오행·띠운세 등 12가지 운세 기능이 한 페이지에. 애드센스·카카오공유 내장.</div>
+    </a>
+    <a class="demo-card" href="tarot_1card.html">
+      <div class="demo-icon">🃏</div>
+      <div class="demo-title">타로카드 1장 뽑기</div>
+      <div class="demo-desc">클릭 한 번으로 오늘의 카드를 뽑는 심플 타로 웹앱. 정·역방향 판별 포함.</div>
+    </a>
+    <a class="demo-card" href="tarot_3card.html">
+      <div class="demo-icon">🔮</div>
+      <div class="demo-title">타로카드 3장 뽑기</div>
+      <div class="demo-desc">과거·현재·미래 등 3가지 스프레드로 흐름을 읽는 타로 웹앱.</div>
+    </a>
+  </div>
+
+  <p class="foot">© 운세 웹앱 소스 · 크몽 판매용 데모 페이지</p>
+</body>
+</html>
