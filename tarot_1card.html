@@ -246,6 +246,31 @@
     transform: translateY(-2px);
   }
 
+  .locked-box {
+    border-color: rgba(201,169,110,0.4);
+  }
+
+  .unlock-desc {
+    font-size: 0.8rem;
+    color: #d4c5f9;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .btn-unlock {
+    display: inline-block;
+    padding: 13px 22px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #7c3aed, #c9a96e);
+    color: #1a0533;
+    font-size: 0.88rem;
+    font-weight: bold;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+    transition: transform 0.2s;
+  }
+  .btn-unlock:hover { transform: translateY(-2px); }
+
   .stars {
     position: fixed;
     top: 0; left: 0;
@@ -314,9 +339,10 @@
       <div class="info-row"><span class="info-label">행성/별자리</span><span class="info-value" id="infoPlanet"></span></div>
     </div>
 
-    <div class="keywords-box">
-      <div class="keywords-title" id="keywordsTitle">✦ 핵심 키워드 ✦</div>
-      <div class="keywords-text" id="keywordsText"></div>
+    <div class="keywords-box locked-box">
+      <div class="keywords-title">🔒 카드 해석 잠금</div>
+      <div class="unlock-desc">이 카드가 지금 당신에게 전하는<br>구체적인 의미와 조언을 확인해보세요</div>
+      <a class="btn-unlock" href="https://pf.kakao.com/_xjGhxnX/friend" target="_blank" rel="noopener">💬 타로한잔 채널에서 1,000원에 해석받기</a>
     </div>
 
     <button class="btn-retry" onclick="reset()">🔄 다시 뽑기</button>
@@ -366,13 +392,10 @@ function drawCard() {
   document.getElementById('cardSymbol').textContent = card.symbol;
   document.getElementById('cardEn').textContent = card.en;
   document.getElementById('cardKo').textContent = card.ko;
-  document.getElementById('cardKeywordsInCard').textContent = isReversed ? card.dn.split(',').slice(0,3).join(' · ') : card.up.split(',').slice(0,3).join(' · ');
+  document.getElementById('cardKeywordsInCard').textContent = '🔒 해석 잠금';
 
   document.getElementById('infoElement').textContent = card.element;
   document.getElementById('infoPlanet').textContent = card.planet;
-
-  document.getElementById('keywordsTitle').textContent = isReversed ? '⚠️ 역방향 키워드' : '✅ 정방향 키워드';
-  document.getElementById('keywordsText').textContent = isReversed ? card.dn : card.up;
 
   const resultArea = document.getElementById('resultArea');
   resultArea.style.display = 'flex';
