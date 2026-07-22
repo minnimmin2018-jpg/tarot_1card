@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔮 타로카드 1장 뽑기</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0d0221 0%, #1a0533 40%, #0d1b4b 100%);
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    color: #f0e6ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 6px;
+    background: linear-gradient(90deg, #c9a96e, #f5d78e, #c9a96e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+    color: #b39ddb;
+    margin-bottom: 36px;
+    text-align: center;
+  }
+
+  .deck-area {
+    position: relative;
+    margin-bottom: 40px;
+  }
+
+  .deck-pile {
+    position: relative;
+    width: 140px;
+    height: 220px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .deck-pile:hover { transform: translateY(-4px); }
+
+  .deck-shadow {
+    position: absolute;
+    width: 140px;
+    height: 220px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 12px;
+    top: 6px;
+    left: 6px;
+  }
+
+  .card-back {
+    width: 140px;
+    height: 220px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #2d1b69, #1a0f3c);
+    border: 2px solid #c9a96e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-back::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(201,169,110,0.4);
+    border-radius: 8px;
+  }
+
+  .card-back svg { width: 80px; height: 80px; opacity: 0.7; }
+
+  .deck-label {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: #c9a96e;
+    letter-spacing: 1px;
+  }
+
+  /* Result area */
+  .result-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.6s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-reveal {
+    width: 160px;
+    height: 250px;
+    border-radius: 14px;
+    border: 2px solid #c9a96e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    padding: 16px 12px;
+  }
+
+  .card-reveal.upright {
+    background: linear-gradient(145deg, #1a3a6b, #0d1f45);
+    box-shadow: 0 0 30px rgba(100,149,237,0.3);
+  }
+
+  .card-reveal.reversed {
+    background: linear-gradient(145deg, #6b1a2a, #3d0f18);
+    box-shadow: 0 0 30px rgba(220,80,100,0.3);
+    transform: rotate(180deg);
+  }
+
+  .card-reveal::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(201,169,110,0.35);
+    border-radius: 8px;
+  }
+
+  .card-num {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #f5d78e;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .card-symbol { font-size: 3rem; margin-bottom: 8px; }
+
+  .card-en {
+    font-size: 0.7rem;
+    color: #c9a96e;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+
+  .card-ko {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #f0e6ff;
+    margin-bottom: 10px;
+  }
+
+  .divider {
+    width: 60%;
+    height: 1px;
+    background: rgba(201,169,110,0.4);
+    margin-bottom: 10px;
+  }
+
+  .card-keywords {
+    font-size: 0.62rem;
+    color: #d4c5f9;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .orientation-badge {
+    display: inline-block;
+    margin-bottom: 12px;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+
+  .badge-upright {
+    background: rgba(100,149,237,0.2);
+    border: 1px solid #6495ed;
+    color: #87b4ff;
+  }
+
+  .badge-reversed {
+    background: rgba(220,80,100,0.2);
+    border: 1px solid #dc5064;
+    color: #ff8fa0;
+  }
+
+  .card-info-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,169,110,0.25);
+    border-radius: 12px;
+    padding: 16px 24px;
+    width: 280px;
+    margin-bottom: 10px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+  }
+
+  .info-label { color: #c9a96e; }
+  .info-value { color: #f0e6ff; text-align: right; max-width: 170px; }
+
+  .keywords-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,169,110,0.25);
+    border-radius: 12px;
+    padding: 14px 20px;
+    width: 280px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .keywords-title { font-size: 0.75rem; color: #c9a96e; margin-bottom: 8px; }
+  .keywords-text  { font-size: 0.82rem; color: #d4c5f9; line-height: 1.8; }
+
+  .btn-retry {
+    padding: 12px 36px;
+    border-radius: 30px;
+    border: 2px solid #c9a96e;
+    background: transparent;
+    color: #f5d78e;
+    font-size: 0.95rem;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.25s;
+  }
+  .btn-retry:hover {
+    background: rgba(201,169,110,0.15);
+    transform: translateY(-2px);
+  }
+
+  .stars {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle linear infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50%       { opacity: 1; }
+  }
+
+  .content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="content">
+  <h1>🔮 타로카드 1장 뽑기</h1>
+  <p class="subtitle">카드를 클릭해서 오늘의 메시지를 받아보세요</p>
+
+  <div class="deck-area" id="deckArea">
+    <div class="deck-pile" onclick="drawCard()">
+      <div class="deck-shadow"></div>
+      <div class="card-back">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="35" stroke="#c9a96e" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <circle cx="50" cy="50" r="20" stroke="#c9a96e" stroke-width="1"/>
+          <line x1="50" y1="15" x2="50" y2="85" stroke="#c9a96e" stroke-width="1" opacity="0.5"/>
+          <line x1="15" y1="50" x2="85" y2="50" stroke="#c9a96e" stroke-width="1" opacity="0.5"/>
+          <line x1="25" y1="25" x2="75" y2="75" stroke="#c9a96e" stroke-width="1" opacity="0.4"/>
+          <line x1="75" y1="25" x2="25" y2="75" stroke="#c9a96e" stroke-width="1" opacity="0.4"/>
+          <circle cx="50" cy="50" r="5" fill="#c9a96e" opacity="0.8"/>
+          <polygon points="50,22 56,38 72,38 60,48 65,64 50,54 35,64 40,48 28,38 44,38" fill="#c9a96e" opacity="0.3"/>
+        </svg>
+      </div>
+    </div>
+    <p class="deck-label">✨ 클릭하여 카드 뽑기</p>
+  </div>
+
+  <div class="result-area" id="resultArea">
+    <div id="orientationBadge" class="orientation-badge"></div>
+
+    <div id="cardReveal" class="card-reveal">
+      <div class="card-num" id="cardNum"></div>
+      <div class="card-symbol" id="cardSymbol"></div>
+      <div class="card-en" id="cardEn"></div>
+      <div class="card-ko" id="cardKo"></div>
+      <div class="divider"></div>
+      <div class="card-keywords" id="cardKeywordsInCard"></div>
+    </div>
+
+    <div class="card-info-box">
+      <div class="info-row"><span class="info-label">원소</span><span class="info-value" id="infoElement"></span></div>
+      <div class="info-row"><span class="info-label">행성/별자리</span><span class="info-value" id="infoPlanet"></span></div>
+    </div>
+
+    <div class="keywords-box">
+      <div class="keywords-title" id="keywordsTitle">✦ 핵심 키워드 ✦</div>
+      <div class="keywords-text" id="keywordsText"></div>
+    </div>
+
+    <button class="btn-retry" onclick="reset()">🔄 다시 뽑기</button>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+  { num:0,  en:"The Fool",         ko:"바보/광대",    symbol:"🃏", element:"바람(Air)",  planet:"천왕성(Uranus)",      up:"새 출발, 자유, 순수, 모험, 무한한 가능성", dn:"경솔함, 준비 부족, 무모함, 충동적 결정" },
+  { num:1,  en:"The Magician",     ko:"마법사",       symbol:"✨", element:"불(Fire)",   planet:"수성(Mercury)",       up:"의지력, 창조, 집중, 능력, 현실화", dn:"속임수, 자원 낭비, 과신, 미완성" },
+  { num:2,  en:"The High Priestess",ko:"여사제",      symbol:"🌙", element:"물(Water)",  planet:"달(Moon)",            up:"직관, 신비, 내면의 지혜, 비밀, 잠재력", dn:"비밀 누설, 혼란, 감정 억압" },
+  { num:3,  en:"The Empress",      ko:"여황제",       symbol:"🌿", element:"흙(Earth)",  planet:"금성(Venus)",         up:"풍요, 창조, 모성애, 자연, 아름다움", dn:"과잉 의존, 질투, 물질주의" },
+  { num:4,  en:"The Emperor",      ko:"황제",         symbol:"👑", element:"불(Fire)",   planet:"양자리(Aries)",        up:"권위, 안정, 구조, 리더십, 보호", dn:"독재, 경직, 통제 집착" },
+  { num:5,  en:"The Hierophant",   ko:"교황",         symbol:"⛪", element:"흙(Earth)",  planet:"황소자리(Taurus)",     up:"전통, 가르침, 체계, 관습, 신념", dn:"독단, 구습 집착, 맹목적 복종" },
+  { num:6,  en:"The Lovers",       ko:"연인",         symbol:"💞", element:"바람(Air)",  planet:"쌍둥이자리(Gemini)",   up:"사랑, 선택, 조화, 합일, 진실한 연결", dn:"잘못된 선택, 가치관 충돌, 유혹" },
+  { num:7,  en:"The Chariot",      ko:"전차",         symbol:"⚡", element:"물(Water)",  planet:"게자리(Cancer)",       up:"승리, 의지, 집중, 통제, 목표 달성", dn:"통제력 상실, 방향 부재, 무모한 돌진" },
+  { num:8,  en:"Strength",         ko:"힘",           symbol:"🦁", element:"불(Fire)",   planet:"사자자리(Leo)",        up:"내면의 힘, 용기, 인내, 온화한 통제", dn:"자기 의심, 두려움, 욕망에 굴복" },
+  { num:9,  en:"The Hermit",       ko:"은둔자",       symbol:"🏮", element:"흙(Earth)",  planet:"처녀자리(Virgo)",      up:"성찰, 고독, 내면 탐구, 지혜, 진실 탐구", dn:"고립, 외로움, 사회적 은둔" },
+  { num:10, en:"Wheel of Fortune", ko:"운명의 수레바퀴",symbol:"🎡",element:"불(Fire)",  planet:"목성(Jupiter)",       up:"행운, 변화, 기회, 순환, 운명", dn:"악운, 저항, 역행, 통제 불가" },
+  { num:11, en:"Justice",          ko:"정의",         symbol:"⚖️", element:"바람(Air)",  planet:"천칭자리(Libra)",      up:"공정, 균형, 진실, 법, 원인과 결과", dn:"불공평, 편견, 책임 회피" },
+  { num:12, en:"The Hanged Man",   ko:"매달린 남자",  symbol:"🙃", element:"물(Water)",  planet:"해왕성(Neptune)",     up:"희생, 내려놓음, 시각 전환, 기다림, 깨달음", dn:"쓸모없는 희생, 자기 연민, 정체" },
+  { num:13, en:"Death",            ko:"죽음",         symbol:"🌑", element:"물(Water)",  planet:"전갈자리(Scorpio)",    up:"변화, 전환, 끝과 시작, 해방, 재탄생", dn:"변화 거부, 집착, 정체" },
+  { num:14, en:"Temperance",       ko:"절제",         symbol:"🌈", element:"불(Fire)",   planet:"사수자리(Sagittarius)",up:"균형, 조화, 인내, 절제, 치유", dn:"과잉, 불균형, 충동, 부조화" },
+  { num:15, en:"The Devil",        ko:"악마",         symbol:"⛓️", element:"흙(Earth)",  planet:"염소자리(Capricorn)",  up:"집착, 욕망, 속박, 물질주의, 그림자", dn:"속박에서의 해방, 집착 극복, 자유 회복" },
+  { num:16, en:"The Tower",        ko:"탑",           symbol:"⚡", element:"불(Fire)",   planet:"화성(Mars)",          up:"갑작스러운 변화, 붕괴, 계시, 충격, 해방", dn:"재난 회피, 변화 저항, 은폐" },
+  { num:17, en:"The Star",         ko:"별",           symbol:"⭐", element:"바람(Air)",  planet:"물병자리(Aquarius)",   up:"희망, 치유, 영감, 평화, 회복", dn:"절망, 희망 상실, 비현실적 기대" },
+  { num:18, en:"The Moon",         ko:"달",           symbol:"🌕", element:"물(Water)",  planet:"물고기자리(Pisces)",   up:"직관, 무의식, 환상, 불확실성, 꿈", dn:"혼란 해소, 기만 극복, 진실 드러남" },
+  { num:19, en:"The Sun",          ko:"태양",         symbol:"☀️", element:"불(Fire)",   planet:"태양(Sun)",           up:"기쁨, 성공, 활력, 긍정, 행복, 성취", dn:"지나친 낙관, 과신, 자아도취" },
+  { num:20, en:"Judgement",        ko:"심판",         symbol:"🎺", element:"불(Fire)",   planet:"명왕성(Pluto)",        up:"각성, 재탄생, 소명, 용서, 해방", dn:"자기 의심, 회피, 과거의 속박" },
+  { num:21, en:"The World",        ko:"세계",         symbol:"🌍", element:"흙(Earth)",  planet:"토성(Saturn)",        up:"완성, 성취, 통합, 전체성, 자유", dn:"미완성, 지연, 단절감, 목표 부재" },
+];
+
+function drawCard() {
+  const card = CARDS[Math.floor(Math.random() * CARDS.length)];
+  const isReversed = Math.random() < 0.35;
+
+  document.getElementById('deckArea').style.display = 'none';
+
+  const badge = document.getElementById('orientationBadge');
+  badge.textContent = isReversed ? '⚠️ 역방향' : '✅ 정방향';
+  badge.className = 'orientation-badge ' + (isReversed ? 'badge-reversed' : 'badge-upright');
+
+  const reveal = document.getElementById('cardReveal');
+  reveal.className = 'card-reveal ' + (isReversed ? 'reversed' : 'upright');
+
+  document.getElementById('cardNum').textContent = card.num;
+  document.getElementById('cardSymbol').textContent = card.symbol;
+  document.getElementById('cardEn').textContent = card.en;
+  document.getElementById('cardKo').textContent = card.ko;
+  document.getElementById('cardKeywordsInCard').textContent = isReversed ? card.dn.split(',').slice(0,3).join(' · ') : card.up.split(',').slice(0,3).join(' · ');
+
+  document.getElementById('infoElement').textContent = card.element;
+  document.getElementById('infoPlanet').textContent = card.planet;
+
+  document.getElementById('keywordsTitle').textContent = isReversed ? '⚠️ 역방향 키워드' : '✅ 정방향 키워드';
+  document.getElementById('keywordsText').textContent = isReversed ? card.dn : card.up;
+
+  const resultArea = document.getElementById('resultArea');
+  resultArea.style.display = 'flex';
+}
+
+function reset() {
+  document.getElementById('deckArea').style.display = 'block';
+  document.getElementById('resultArea').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Generate stars
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 80; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2.5 + 0.5;
+  s.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${Math.random()*100}%;
+    top:${Math.random()*100}%;
+    animation-duration:${Math.random()*4+2}s;
+    animation-delay:${Math.random()*5}s;
+  `;
+  starsEl.appendChild(s);
+}
+</script>
+</body>
+</html>

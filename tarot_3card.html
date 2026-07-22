@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔮 타로카드 3장 뽑기</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0d0221 0%, #1a0533 40%, #0d1b4b 100%);
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    color: #f0e6ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px 50px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 6px;
+    background: linear-gradient(90deg, #c9a96e, #f5d78e, #c9a96e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    font-size: 0.88rem;
+    color: #b39ddb;
+    margin-bottom: 26px;
+    text-align: center;
+  }
+
+  /* Spread selector */
+  .spread-selector {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .spread-btn {
+    padding: 9px 18px;
+    border-radius: 24px;
+    border: 1.5px solid rgba(201,169,110,0.4);
+    background: rgba(255,255,255,0.05);
+    color: #d4c5f9;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .spread-btn.active {
+    border-color: #c9a96e;
+    background: rgba(201,169,110,0.15);
+    color: #f5d78e;
+    font-weight: bold;
+  }
+
+  .spread-btn:hover { transform: translateY(-2px); }
+
+  /* Draw button */
+  .btn-draw {
+    padding: 14px 48px;
+    border-radius: 32px;
+    border: 2px solid #c9a96e;
+    background: linear-gradient(135deg, rgba(201,169,110,0.2), rgba(201,169,110,0.05));
+    color: #f5d78e;
+    font-size: 1rem;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.25s;
+    margin-bottom: 36px;
+    font-weight: bold;
+  }
+
+  .btn-draw:hover {
+    background: rgba(201,169,110,0.25);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(201,169,110,0.2);
+  }
+
+  /* Cards area */
+  .cards-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    animation: fadeIn 0.6s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Position labels */
+  .position-labels {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .pos-label {
+    width: 130px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #c9a96e;
+    letter-spacing: 1px;
+  }
+
+  /* Card row */
+  .cards-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  /* Individual card */
+  .card-front {
+    width: 130px;
+    height: 210px;
+    border-radius: 13px;
+    border: 2px solid #c9a96e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-front.upright {
+    background: linear-gradient(145deg, #1a3a6b, #0d1f45);
+    box-shadow: 0 0 22px rgba(100,149,237,0.25);
+    animation: popIn 0.5s ease both;
+  }
+
+  .card-front.reversed {
+    background: linear-gradient(145deg, #6b1a2a, #3d0f18);
+    box-shadow: 0 0 22px rgba(220,80,100,0.25);
+    animation: popIn 0.5s ease both;
+    transform: rotate(180deg);
+  }
+
+  .card-front:nth-child(1) { animation-delay: 0s; }
+  .card-front:nth-child(2) { animation-delay: 0.15s; }
+  .card-front:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.7) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .card-front.reversed { animation-name: popInReversed; }
+  @keyframes popInReversed {
+    from { opacity: 0; transform: rotate(180deg) scale(0.7) translateY(20px); }
+    to   { opacity: 1; transform: rotate(180deg) scale(1) translateY(0); }
+  }
+
+  .card-front::before {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    border: 1px solid rgba(201,169,110,0.3);
+    border-radius: 8px;
+  }
+
+  .orientation-tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.55rem;
+    padding: 2px 6px;
+    border-radius: 8px;
+  }
+
+  .tag-upright { background: rgba(100,149,237,0.3); color: #87b4ff; }
+  .tag-reversed { background: rgba(220,80,100,0.3); color: #ff8fa0; }
+
+  .card-num-small { font-size: 1.5rem; font-weight: bold; color: #f5d78e; margin-bottom: 4px; }
+  .card-symbol-small { font-size: 2.2rem; margin-bottom: 6px; }
+  .card-en-small { font-size: 0.6rem; color: #c9a96e; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .card-ko-small { font-size: 0.9rem; font-weight: bold; color: #f0e6ff; margin-bottom: 8px; }
+  .divider-small { width: 60%; height: 1px; background: rgba(201,169,110,0.4); margin-bottom: 8px; }
+  .card-kw-small { font-size: 0.55rem; color: #d4c5f9; text-align: center; line-height: 1.6; }
+
+  /* Detail section */
+  .result-detail {
+    width: 100%;
+    max-width: 440px;
+    margin-bottom: 10px;
+  }
+
+  .detail-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,169,110,0.2);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+
+  .detail-pos { font-size: 0.72rem; color: #c9a96e; letter-spacing: 1px; margin-bottom: 4px; }
+  .detail-name { font-size: 1rem; font-weight: bold; color: #f0e6ff; margin-bottom: 6px; }
+
+  .detail-orientation {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 2px 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+
+  .detail-up { background: rgba(100,149,237,0.2); color: #87b4ff; }
+  .detail-dn { background: rgba(220,80,100,0.2); color: #ff8fa0; }
+
+  .detail-info { font-size: 0.78rem; color: #b39ddb; margin-bottom: 4px; }
+  .detail-keywords { font-size: 0.8rem; color: #d4c5f9; line-height: 1.7; }
+
+  .btn-retry {
+    padding: 12px 36px;
+    border-radius: 30px;
+    border: 2px solid #c9a96e;
+    background: transparent;
+    color: #f5d78e;
+    font-size: 0.95rem;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.25s;
+    margin-top: 8px;
+  }
+
+  .btn-retry:hover {
+    background: rgba(201,169,110,0.15);
+    transform: translateY(-2px);
+  }
+
+  /* Stars */
+  .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+  .star { position: absolute; background: white; border-radius: 50%; animation: twinkle linear infinite; }
+  @keyframes twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+  .content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="content">
+  <h1>🔮 타로카드 3장 뽑기</h1>
+  <p class="subtitle">스프레드 방식을 선택한 뒤, 카드를 뽑으세요</p>
+
+  <div class="spread-selector" id="spreadSelector">
+    <button class="spread-btn active" onclick="selectSpread(0)">과거 · 현재 · 미래</button>
+    <button class="spread-btn" onclick="selectSpread(1)">상황 · 조언 · 결과</button>
+    <button class="spread-btn" onclick="selectSpread(2)">내 마음 · 상대 마음 · 결과</button>
+  </div>
+
+  <button class="btn-draw" id="drawBtn" onclick="drawAll()">✨ 카드 3장 뽑기 ✨</button>
+
+  <div class="cards-area" id="cardsArea">
+    <div class="position-labels" id="posLabels">
+      <div class="pos-label" id="pos0"></div>
+      <div class="pos-label" id="pos1"></div>
+      <div class="pos-label" id="pos2"></div>
+    </div>
+
+    <div class="cards-row" id="cardsRow"></div>
+
+    <div class="result-detail" id="resultDetail"></div>
+
+    <button class="btn-retry" onclick="reset()">🔄 다시 뽑기</button>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+  { num:0,  en:"The Fool",          ko:"바보/광대",      symbol:"🃏", element:"바람(Air)",  planet:"천왕성(Uranus)",       up:"새 출발, 자유, 순수, 모험, 무한한 가능성", dn:"경솔함, 준비 부족, 무모함, 충동적 결정" },
+  { num:1,  en:"The Magician",      ko:"마법사",         symbol:"✨", element:"불(Fire)",   planet:"수성(Mercury)",        up:"의지력, 창조, 집중, 능력, 현실화", dn:"속임수, 자원 낭비, 과신, 미완성" },
+  { num:2,  en:"The High Priestess",ko:"여사제",         symbol:"🌙", element:"물(Water)",  planet:"달(Moon)",             up:"직관, 신비, 내면의 지혜, 비밀, 잠재력", dn:"비밀 누설, 혼란, 감정 억압" },
+  { num:3,  en:"The Empress",       ko:"여황제",         symbol:"🌿", element:"흙(Earth)",  planet:"금성(Venus)",          up:"풍요, 창조, 모성애, 자연, 아름다움", dn:"과잉 의존, 질투, 물질주의" },
+  { num:4,  en:"The Emperor",       ko:"황제",           symbol:"👑", element:"불(Fire)",   planet:"양자리(Aries)",         up:"권위, 안정, 구조, 리더십, 보호", dn:"독재, 경직, 통제 집착" },
+  { num:5,  en:"The Hierophant",    ko:"교황",           symbol:"⛪", element:"흙(Earth)",  planet:"황소자리(Taurus)",      up:"전통, 가르침, 체계, 관습, 신념", dn:"독단, 구습 집착, 맹목적 복종" },
+  { num:6,  en:"The Lovers",        ko:"연인",           symbol:"💞", element:"바람(Air)",  planet:"쌍둥이자리(Gemini)",    up:"사랑, 선택, 조화, 합일, 진실한 연결", dn:"잘못된 선택, 가치관 충돌, 유혹" },
+  { num:7,  en:"The Chariot",       ko:"전차",           symbol:"⚡", element:"물(Water)",  planet:"게자리(Cancer)",        up:"승리, 의지, 집중, 통제, 목표 달성", dn:"통제력 상실, 방향 부재, 무모한 돌진" },
+  { num:8,  en:"Strength",          ko:"힘",             symbol:"🦁", element:"불(Fire)",   planet:"사자자리(Leo)",         up:"내면의 힘, 용기, 인내, 온화한 통제", dn:"자기 의심, 두려움, 욕망에 굴복" },
+  { num:9,  en:"The Hermit",        ko:"은둔자",         symbol:"🏮", element:"흙(Earth)",  planet:"처녀자리(Virgo)",       up:"성찰, 고독, 내면 탐구, 지혜, 진실 탐구", dn:"고립, 외로움, 사회적 은둔" },
+  { num:10, en:"Wheel of Fortune",  ko:"운명의 수레바퀴",symbol:"🎡", element:"불(Fire)",   planet:"목성(Jupiter)",        up:"행운, 변화, 기회, 순환, 운명", dn:"악운, 저항, 역행, 통제 불가" },
+  { num:11, en:"Justice",           ko:"정의",           symbol:"⚖️", element:"바람(Air)",  planet:"천칭자리(Libra)",       up:"공정, 균형, 진실, 법, 원인과 결과", dn:"불공평, 편견, 책임 회피" },
+  { num:12, en:"The Hanged Man",    ko:"매달린 남자",    symbol:"🙃", element:"물(Water)",  planet:"해왕성(Neptune)",      up:"희생, 내려놓음, 시각 전환, 기다림, 깨달음", dn:"쓸모없는 희생, 자기 연민, 정체" },
+  { num:13, en:"Death",             ko:"죽음",           symbol:"🌑", element:"물(Water)",  planet:"전갈자리(Scorpio)",     up:"변화, 전환, 끝과 시작, 해방, 재탄생", dn:"변화 거부, 집착, 정체" },
+  { num:14, en:"Temperance",        ko:"절제",           symbol:"🌈", element:"불(Fire)",   planet:"사수자리(Sagittarius)", up:"균형, 조화, 인내, 절제, 치유", dn:"과잉, 불균형, 충동, 부조화" },
+  { num:15, en:"The Devil",         ko:"악마",           symbol:"⛓️", element:"흙(Earth)",  planet:"염소자리(Capricorn)",   up:"집착, 욕망, 속박, 물질주의, 그림자", dn:"속박에서의 해방, 집착 극복, 자유 회복" },
+  { num:16, en:"The Tower",         ko:"탑",             symbol:"🌩️", element:"불(Fire)",   planet:"화성(Mars)",           up:"갑작스러운 변화, 붕괴, 계시, 충격, 해방", dn:"재난 회피, 변화 저항, 은폐" },
+  { num:17, en:"The Star",          ko:"별",             symbol:"⭐", element:"바람(Air)",  planet:"물병자리(Aquarius)",    up:"희망, 치유, 영감, 평화, 회복", dn:"절망, 희망 상실, 비현실적 기대" },
+  { num:18, en:"The Moon",          ko:"달",             symbol:"🌕", element:"물(Water)",  planet:"물고기자리(Pisces)",    up:"직관, 무의식, 환상, 불확실성, 꿈", dn:"혼란 해소, 기만 극복, 진실 드러남" },
+  { num:19, en:"The Sun",           ko:"태양",           symbol:"☀️", element:"불(Fire)",   planet:"태양(Sun)",            up:"기쁨, 성공, 활력, 긍정, 행복, 성취", dn:"지나친 낙관, 과신, 자아도취" },
+  { num:20, en:"Judgement",         ko:"심판",           symbol:"🎺", element:"불(Fire)",   planet:"명왕성(Pluto)",         up:"각성, 재탄생, 소명, 용서, 해방", dn:"자기 의심, 회피, 과거의 속박" },
+  { num:21, en:"The World",         ko:"세계",           symbol:"🌍", element:"흙(Earth)",  planet:"토성(Saturn)",         up:"완성, 성취, 통합, 전체성, 자유", dn:"미완성, 지연, 단절감, 목표 부재" },
+];
+
+const SPREADS = [
+  ["과거", "현재", "미래"],
+  ["상황", "조언", "결과"],
+  ["내 마음", "상대방 마음", "결과"],
+];
+
+let currentSpread = 0;
+
+function selectSpread(idx) {
+  currentSpread = idx;
+  document.querySelectorAll('.spread-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === idx);
+  });
+}
+
+function drawAll() {
+  // Pick 3 unique random cards
+  const indices = [];
+  while (indices.length < 3) {
+    const i = Math.floor(Math.random() * CARDS.length);
+    if (!indices.includes(i)) indices.push(i);
+  }
+
+  const drawn = indices.map(i => ({
+    card: CARDS[i],
+    isReversed: Math.random() < 0.35
+  }));
+
+  const labels = SPREADS[currentSpread];
+
+  // Update position labels
+  for (let i = 0; i < 3; i++) {
+    document.getElementById('pos' + i).textContent = labels[i];
+  }
+
+  // Build card visuals
+  const cardsRow = document.getElementById('cardsRow');
+  cardsRow.innerHTML = '';
+  drawn.forEach(({ card, isReversed }, i) => {
+    const div = document.createElement('div');
+    div.className = 'card-front ' + (isReversed ? 'reversed' : 'upright');
+    div.style.animationDelay = (i * 0.15) + 's';
+    div.innerHTML = `
+      <div class="orientation-tag ${isReversed ? 'tag-reversed' : 'tag-upright'}">${isReversed ? '역방향' : '정방향'}</div>
+      <div class="card-num-small">${card.num}</div>
+      <div class="card-symbol-small">${card.symbol}</div>
+      <div class="card-en-small">${card.en}</div>
+      <div class="card-ko-small">${card.ko}</div>
+      <div class="divider-small"></div>
+      <div class="card-kw-small">${(isReversed ? card.dn : card.up).split(',').slice(0,3).join(' · ')}</div>
+    `;
+    cardsRow.appendChild(div);
+  });
+
+  // Build detail section
+  const detail = document.getElementById('resultDetail');
+  detail.innerHTML = drawn.map(({ card, isReversed }, i) => `
+    <div class="detail-card">
+      <div class="detail-pos">[ ${labels[i]} ]</div>
+      <div class="detail-name">${card.symbol} ${card.num}번 ${card.en} · ${card.ko}</div>
+      <span class="detail-orientation ${isReversed ? 'detail-dn' : 'detail-up'}">${isReversed ? '⚠️ 역방향' : '✅ 정방향'}</span>
+      <div class="detail-info">원소 ${card.element} &nbsp;|&nbsp; ${card.planet}</div>
+      <div class="detail-keywords">${isReversed ? card.dn : card.up}</div>
+    </div>
+  `).join('');
+
+  // Show result, hide draw button + spread selector
+  document.getElementById('drawBtn').style.display = 'none';
+  document.getElementById('spreadSelector').style.display = 'none';
+  document.getElementById('cardsArea').style.display = 'flex';
+}
+
+function reset() {
+  document.getElementById('drawBtn').style.display = 'block';
+  document.getElementById('spreadSelector').style.display = 'flex';
+  document.getElementById('cardsArea').style.display = 'none';
+  document.getElementById('cardsRow').innerHTML = '';
+  document.getElementById('resultDetail').innerHTML = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Stars
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 80; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2.5 + 0.5;
+  s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${Math.random()*4+2}s;animation-delay:${Math.random()*5}s;`;
+  starsEl.appendChild(s);
+}
+</script>
+</body>
+</html>
