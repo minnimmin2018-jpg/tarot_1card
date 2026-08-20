@@ -290,7 +290,7 @@ const CONFIG = {
   API_KEY:'',                      // 발급받은 키. 비우면 데모 모드.
   CLAUDE_MODEL:'claude-3-5-sonnet-20241022',
   OPENAI_MODEL:'gpt-4o-mini',
-  LOGO_URL:'',                     // 예: 'logo.png' (배경 투명 PNG)
+  LOGO_URL:'logo.png',             // 로고 파일 (흰 배경은 자동으로 투명 처리됨)
   EVENT_NAME:'2026 경상북도 국제 AI·메타버스 영상제',
   BGM_URL:'',                      // 배경음악 파일 경로 (예: 'bgm.mp3'). 있으면 이걸 우선 사용.
   BGM_YOUTUBE_ID:'vrCgLIHKxeU',    // 유튜브 배경음(신비로운 트랙). BGM_URL이 비어있을 때 사용. 비우면 BGM 없음.
@@ -361,6 +361,23 @@ const LUCKY={
 /* ── 상태 ── */
 let concern="", emotion="", zodiac="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="", lastBlocks=[];
 let soundOn=true, audioCtx=null, bgmEl=null, ytPlayer=null, ytReady=false, userGestured=false;
+let LOGO_SRC=CONFIG.LOGO_URL;  // 흰배경 제거된 버전으로 교체됨
+function processLogo(cb){
+  if(!CONFIG.LOGO_URL){ cb&&cb(); return; }
+  const img=new Image();
+  img.onload=()=>{
+    try{
+      const c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
+      const x=c.getContext('2d'); x.drawImage(img,0,0);
+      const d=x.getImageData(0,0,c.width,c.height); const p=d.data;
+      for(let i=0;i<p.length;i+=4){ if(p[i]>236&&p[i+1]>236&&p[i+2]>236){ p[i+3]=0; } }
+      x.putImageData(d,0,0); LOGO_SRC=c.toDataURL('image/png');
+    }catch(e){ LOGO_SRC=CONFIG.LOGO_URL; }
+    cb&&cb();
+  };
+  img.onerror=()=>{ cb&&cb(); };
+  img.src=CONFIG.LOGO_URL;
+}
 function tryStartYT(){ if(soundOn&&ytPlayer&&ytReady){ try{ ytPlayer.playVideo(); }catch(e){} } }
 
 /* ── 화면 전환 ── */
@@ -556,11 +573,11 @@ function resetAll(){
   go('start');
 }
 function cardBack(){
-  if(CONFIG.LOGO_URL) return '<img class="cardlogo-img" src="'+CONFIG.LOGO_URL+'" alt="">';
+  if(CONFIG.LOGO_URL) return '<img class="cardlogo-img" src="'+LOGO_SRC+'" alt="">';
   return '<div class="cardlogo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#7A4FB5">M</span><span style="color:#2E3192">F</span><span style="color:#2E3192">F</span></div>';
 }
 function tickerLogo(){
-  if(CONFIG.LOGO_URL) return '<img class="tk-logo-img" src="'+CONFIG.LOGO_URL+'" alt="">';
+  if(CONFIG.LOGO_URL) return '<img class="tk-logo-img" src="'+LOGO_SRC+'" alt="">';
   return '<span class="tk-logo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#7A4FB5">M</span><span style="color:#2E3192">F</span><span style="color:#2E3192">F</span></span>';
 }
 function buildTicker(){
@@ -716,7 +733,7 @@ function savePhotocard(){
     },'image/png');
   };
   if(CONFIG.LOGO_URL){
-    const img=new Image(); img.onload=()=>{ const lw=150,lh=img.height*(lw/img.width); x.drawImage(img,(W-lw)/2,H-52-lh-28,lw,lh); finish(); }; img.onerror=finish; img.src=CONFIG.LOGO_URL;
+    const img=new Image(); img.onload=()=>{ const lw=210,lh=img.height*(lw/img.width); x.drawImage(img,(W-lw)/2,H-52-lh-24,lw,lh); finish(); }; img.onerror=finish; img.src=LOGO_SRC;
   } else finish();
 }
 function roundRect(x,px,py,w,h,r){ x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); }
@@ -808,7 +825,7 @@ function initBg(){
 
 /* ── 초기화 ── */
 (function init(){
-  if(CONFIG.LOGO_URL) document.getElementById('brandLogo').innerHTML='<img src="'+CONFIG.LOGO_URL+'" alt="logo">';
+  if(CONFIG.LOGO_URL) document.getElementById('brandLogo').innerHTML='<img src="'+LOGO_SRC+'" alt="logo">';
   const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
   document.getElementById('demoNote').textContent=useAI?'AI 실시간':'데모 모드';
   if(CONFIG.BGM_URL){
@@ -819,6 +836,9 @@ function initBg(){
     document.body.addEventListener('click',()=>{ userGestured=true; tryStartYT(); });
   }
   buildEmotions(); buildZodiac(); buildTicker(); initBg();
+  processLogo(()=>{
+    if(CONFIG.LOGO_URL){ document.getElementById('brandLogo').innerHTML='<img src="'+LOGO_SRC+'" alt="logo">'; buildTicker(); }
+  });
 })();
 </script>
 </body>
