@@ -24,8 +24,9 @@
   @keyframes spin { to{ transform:rotate(360deg); } }
   .grid-glow { position:fixed; inset:0; z-index:1; pointer-events:none;
     background:
-      radial-gradient(ellipse 55% 45% at 50% 30%, rgba(37,99,235,.16), transparent 68%),
-      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(6,182,212,.12), transparent 70%);
+      radial-gradient(ellipse 75% 62% at 50% 48%, rgba(4,7,16,.66) 0%, rgba(4,7,16,.30) 46%, transparent 74%),
+      radial-gradient(ellipse 55% 45% at 50% 28%, rgba(37,99,235,.10), transparent 68%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(6,182,212,.08), transparent 70%);
   }
 
   .screen {
@@ -36,9 +37,13 @@
   .screen.active { display:flex; animation:fade .5s ease; }
   @keyframes fade { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)} }
 
-  .logo-slot { min-height:64px; margin-bottom:18px; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#6b5a9a; letter-spacing:1px; }
-  .logo-slot img { max-height:88px; max-width:280px; }
-  .event-tag { font-size:.82rem; color:#8fb8e0; letter-spacing:2px; margin-bottom:24px; border:1px solid rgba(143,184,224,.3); padding:6px 18px; border-radius:999px; }
+  .brand { margin-bottom:26px; }
+  .brand-ko { font-size:1.45rem; font-weight:900; line-height:1.32; letter-spacing:1px; color:#fff; margin-bottom:12px; text-shadow:0 2px 12px rgba(0,0,0,.6); }
+  .brand-ko .c-ai { color:#f59e0b; }
+  .brand-logo { margin-bottom:8px; }
+  .brand-logo .gamff-svg { height:64px; }
+  .brand-logo img { max-height:76px; max-width:300px; }
+  .brand-en { font-size:.6rem; letter-spacing:1.6px; color:#9fb4d4; font-weight:bold; line-height:1.5; }
 
   .gold { background:linear-gradient(90deg,#c9a96e,#f5d78e,#c9a96e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   h1 { font-size:2.7rem; font-weight:900; letter-spacing:3px; margin-bottom:14px; }
@@ -166,8 +171,19 @@
 
 <!-- 시작 -->
 <section class="screen active" id="screen-start">
-  <div class="logo-slot" id="logoSlot">[ 영상제 로고 ]</div>
-  <div class="event-tag" id="eventTag">2026 경상북도 국제 AI 메타버스 영상제</div>
+  <div class="brand" id="brandBlock">
+    <div class="brand-ko">2026 경상북도<br>국제 <span class="c-ai">AI</span>·메타버스 영상제</div>
+    <div class="brand-logo" id="brandLogo">
+      <svg class="gamff-svg" viewBox="0 0 380 100" xmlns="http://www.w3.org/2000/svg">
+        <text x="180" y="80" text-anchor="middle" font-family="'Arial Black','Malgun Gothic',sans-serif" font-size="90" font-weight="900" letter-spacing="1">
+          <tspan fill="#E4322B">G</tspan><tspan fill="#D6218C">A</tspan><tspan fill="#3B4CA0">M</tspan><tspan fill="#2E3192">F</tspan><tspan fill="#4EA0DB">F</tspan>
+        </text>
+        <circle cx="356" cy="26" r="10" fill="#22A45A"/>
+        <rect x="330" y="66" width="16" height="16" fill="#8DC63F"/>
+      </svg>
+    </div>
+    <div class="brand-en">GYEONGSANGBUK-DO INTERNATIONAL<br>AI·METAVERSE FILM FESTIVAL</div>
+  </div>
   <h1 class="gold">AI 타로 상담소</h1>
   <p class="sub">당신의 고민을 들려주세요.<br>AI가 별과 카드에 담긴 답을 읽어드립니다.</p>
   <button class="btn" onclick="clickSound();go('concern')">✨ 체험 시작하기</button>
@@ -581,10 +597,10 @@ function initBg(){
   for(let i=0;i<38;i++) falls.push(newFall());
   for(let i=0;i<50;i++) dust.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+0.4,vx:(Math.random()-0.5)*0.25,vy:(Math.random()-0.5)*0.25,a:Math.random()*0.4+0.15});
   nebula=[
-    {x:0.28,y:0.28,r:0.42,c:'124,58,237',a:0.16},
-    {x:0.72,y:0.35,r:0.40,c:'6,130,220',a:0.15},
-    {x:0.5,y:0.72,r:0.5,c:'14,165,190',a:0.12},
-    {x:0.15,y:0.6,r:0.32,c:'168,85,247',a:0.10},
+    {x:0.22,y:0.22,r:0.40,c:'124,58,237',a:0.09},
+    {x:0.78,y:0.28,r:0.38,c:'6,130,220',a:0.09},
+    {x:0.5,y:0.80,r:0.5,c:'14,165,190',a:0.07},
+    {x:0.12,y:0.6,r:0.30,c:'168,85,247',a:0.06},
   ];
   function newFall(){ return {x:Math.random()*W,y:Math.random()*-H,len:Math.random()*80+30,sp:Math.random()*3+2,a:Math.random()*0.5+0.25}; }
 
@@ -600,7 +616,7 @@ function initBg(){
   function drawGlobe(){
     const gx=W/2, gy=H*0.33, R=Math.min(W,H)*0.27;
     const gl=x.createRadialGradient(gx,gy,R*0.2,gx,gy,R*1.6);
-    gl.addColorStop(0,'rgba(56,120,235,0.28)'); gl.addColorStop(0.6,'rgba(37,99,235,0.10)'); gl.addColorStop(1,'rgba(37,99,235,0)');
+    gl.addColorStop(0,'rgba(56,120,235,0.16)'); gl.addColorStop(0.6,'rgba(37,99,235,0.07)'); gl.addColorStop(1,'rgba(37,99,235,0)');
     x.fillStyle=gl; x.beginPath(); x.arc(gx,gy,R*1.6,0,7); x.fill();
     x.lineWidth=1;
     x.strokeStyle='rgba(125,211,252,0.30)';
@@ -649,8 +665,7 @@ function initBg(){
 
 /* ── 초기화 ── */
 (function init(){
-  if(CONFIG.LOGO_URL) document.getElementById('logoSlot').innerHTML='<img src="'+CONFIG.LOGO_URL+'" alt="logo">';
-  document.getElementById('eventTag').textContent=CONFIG.EVENT_NAME;
+  if(CONFIG.LOGO_URL) document.getElementById('brandLogo').innerHTML='<img src="'+CONFIG.LOGO_URL+'" alt="logo">';
   const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
   document.getElementById('demoNote').textContent=useAI?'AI 실시간':'데모 모드';
   if(CONFIG.BGM_URL){ bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=true; bgmEl.volume=0.35;
