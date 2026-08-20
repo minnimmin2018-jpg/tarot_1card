@@ -14,18 +14,18 @@
   #bgCanvas { position:fixed; inset:0; z-index:0; }
   .orbits { position:fixed; inset:0; z-index:0; pointer-events:none; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .ring { position:absolute; border:1px solid rgba(124,58,237,.12); border-radius:50%; }
-  .ring.r1 { width:640px; height:640px; animation:spin 60s linear infinite; border-color:rgba(201,169,110,.1); }
-  .ring.r2 { width:920px; height:920px; animation:spin 90s linear infinite reverse; }
-  .ring.r3 { width:1240px; height:1240px; animation:spin 120s linear infinite; border-color:rgba(6,182,212,.08); }
-  .ring::before { content:''; position:absolute; top:-4px; left:50%; width:7px; height:7px; border-radius:50%; background:#f5d78e; box-shadow:0 0 12px #f5d78e; }
-  .ring.r2::before { background:#a855f7; box-shadow:0 0 12px #a855f7; }
+  .ring.r1 { width:640px; height:640px; animation:spin 60s linear infinite; border-color:rgba(96,165,250,.14); }
+  .ring.r2 { width:920px; height:920px; animation:spin 90s linear infinite reverse; border-color:rgba(59,130,246,.1); }
+  .ring.r3 { width:1240px; height:1240px; animation:spin 120s linear infinite; border-color:rgba(6,182,212,.1); }
+  .ring::before { content:''; position:absolute; top:-4px; left:50%; width:7px; height:7px; border-radius:50%; background:#7dd3fc; box-shadow:0 0 12px #7dd3fc; }
+  .ring.r2::before { background:#60a5fa; box-shadow:0 0 12px #60a5fa; }
   .ring.r3::before { background:#06b6d4; box-shadow:0 0 12px #06b6d4; }
   @keyframes spin { to{ transform:rotate(360deg); } }
   .grid-glow { position:fixed; inset:0; z-index:0; pointer-events:none;
     background:
-      radial-gradient(ellipse 60% 40% at 50% 25%, rgba(124,58,237,.22), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 15% 80%, rgba(6,182,212,.12), transparent 70%),
-      linear-gradient(180deg,#0a0620 0%,#05030f 100%);
+      radial-gradient(ellipse 55% 45% at 50% 30%, rgba(37,99,235,.28), transparent 68%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(6,182,212,.18), transparent 70%),
+      linear-gradient(180deg,#081029 0%,#040814 100%);
   }
 
   .screen {
@@ -210,7 +210,7 @@
 <!-- 해석 로딩 -->
 <section class="screen" id="screen-reading-load">
   <div class="analyze-orb"><div class="halo"></div><div class="halo2"></div><div class="core">✨</div></div>
-  <p class="load-text" id="readText">카드에 담긴 메시지를 풀어내는 중이에요...</p>
+  <p class="load-text" id="readText">당신의 마음을 읽는 마법이 부려지고 있습니다...</p>
   <div class="load-bar"><div class="load-fill" id="loadFill2"></div></div>
 </section>
 
@@ -240,7 +240,7 @@ const CONFIG = {
   CLAUDE_MODEL:'claude-3-5-sonnet-20241022',
   OPENAI_MODEL:'gpt-4o-mini',
   LOGO_URL:'',                     // 예: 'logo.png' (배경 투명 PNG)
-  EVENT_NAME:'2026 경상북도 국제 AI 메타버스 영상제',
+  EVENT_NAME:'2026 경상북도 국제 AI·메타버스 영상제',
   BGM_URL:'',                      // 배경음악 파일 경로 (예: 'bgm.mp3'). 비우면 BGM 없음.
   AUTO_RESET_SEC:120,
   TONE:'따뜻하고 위로가 되는 다정한 말투로, 희망을 주되 뻔하지 않게',
@@ -382,17 +382,30 @@ function chooseCard(idx,el){
   else updatePrompt();
 }
 
-/* ── 해석 실행 ── */
+/* ── 해석 실행 (최소 6.5초 연출 보장) ── */
+const READ_MSGS=[
+  "당신의 마음을 읽는 마법이 부려지고 있습니다...",
+  "카드에 깃든 별들의 메시지를 모으는 중이에요...",
+  "당신의 고민과 카드의 기운을 연결하고 있어요...",
+  "곧 당신만을 위한 이야기가 도착해요...",
+];
+const MIN_READ_MS=6500;
 async function runReading(){
   go('reading-load');
   const fill=document.getElementById('loadFill2'); fill.style.width='0';
-  let p=0; const iv=setInterval(()=>{ p+=3; fill.style.width=Math.min(p,95)+'%'; },100);
+  const rt=document.getElementById('readText'); let mi=0; rt.textContent=READ_MSGS[0];
+  const msgIv=setInterval(()=>{ mi=(mi+1)%READ_MSGS.length; rt.textContent=READ_MSGS[mi]; },1700);
+  let p=0; const barIv=setInterval(()=>{ p+=100/(MIN_READ_MS/100); fill.style.width=Math.min(p,97)+'%'; },100);
+
   const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
-  let data=null;
-  try{ data = useAI ? await callAI() : null; }catch(e){ data=null; }
-  if(!data) data=localReading();
-  clearInterval(iv); fill.style.width='100%';
-  setTimeout(()=>renderResult(data, useAI&&data.byAI),400);
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const getData=(async()=>{ try{ return useAI ? await callAI() : null; }catch(e){ return null; } })();
+  // 데이터와 최소 연출시간을 함께 기다림
+  const [data]=await Promise.all([getData, wait(MIN_READ_MS)]);
+  const finalData=data||localReading();
+
+  clearInterval(msgIv); clearInterval(barIv); fill.style.width='100%';
+  setTimeout(()=>renderResult(finalData, useAI&&finalData.byAI),450);
 }
 
 /* ── 결과 렌더 ── */
@@ -556,22 +569,61 @@ function wrapText(x,text,cx,cy,maxW,lh){
 }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
 
-/* ══ 배경 애니메이션 (별빛 낙하) ══ */
+/* ══ 배경 애니메이션 (메타버스: 와이어프레임 구체 + 사이버 도시 + 별빛) ══ */
 function initBg(){
   const cv=document.getElementById('bgCanvas'), x=cv.getContext('2d');
-  let W,H,stars=[],falls=[];
-  function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+  let W,H,stars=[],falls=[],city=[],t=0;
+  function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; buildCity(); }
+  function buildCity(){
+    city=[]; let cx=0;
+    while(cx<W){ const w=Math.random()*46+24; const h=Math.random()*140+40; city.push({x:cx,w,h}); cx+=w+Math.random()*10; }
+  }
   resize(); addEventListener('resize',resize);
-  for(let i=0;i<140;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+0.3,tw:Math.random()*6.28,sp:Math.random()*0.03+0.01});
-  for(let i=0;i<26;i++) falls.push(newFall());
-  function newFall(){ return {x:Math.random()*W,y:Math.random()*-H,len:Math.random()*60+30,sp:Math.random()*3+2,a:Math.random()*0.5+0.3}; }
+  for(let i=0;i<150;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+0.3,tw:Math.random()*6.28,sp:Math.random()*0.03+0.01});
+  for(let i=0;i<30;i++) falls.push(newFall());
+  function newFall(){ return {x:Math.random()*W,y:Math.random()*-H,len:Math.random()*70+30,sp:Math.random()*3+2,a:Math.random()*0.45+0.25}; }
+
+  function drawGlobe(){
+    const gx=W/2, gy=H*0.34, R=Math.min(W,H)*0.28;
+    // 후광
+    const gl=x.createRadialGradient(gx,gy,R*0.3,gx,gy,R*1.5);
+    gl.addColorStop(0,'rgba(37,99,235,0.20)'); gl.addColorStop(1,'rgba(37,99,235,0)');
+    x.fillStyle=gl; x.beginPath(); x.arc(gx,gy,R*1.5,0,7); x.fill();
+    x.strokeStyle='rgba(96,165,250,0.28)'; x.lineWidth=1;
+    // 경선 (회전)
+    for(let i=0;i<7;i++){
+      const rx=Math.abs(R*Math.cos(t*0.3+i*Math.PI/7));
+      x.beginPath(); x.ellipse(gx,gy,rx,R,0,0,7); x.stroke();
+    }
+    // 위선
+    for(let i=1;i<6;i++){
+      const yy=gy-R+ (2*R)*(i/6); const rr=Math.sqrt(Math.max(0,R*R-(yy-gy)*(yy-gy)));
+      x.beginPath(); x.ellipse(gx,yy,rr,rr*0.16,0,0,7); x.stroke();
+    }
+    x.strokeStyle='rgba(125,211,252,0.4)'; x.beginPath(); x.arc(gx,gy,R,0,7); x.stroke();
+  }
+  function drawCity(){
+    const base=H;
+    city.forEach(b=>{
+      const gy=x.createLinearGradient(0,base-b.h,0,base);
+      gy.addColorStop(0,'rgba(30,58,138,0.55)'); gy.addColorStop(1,'rgba(8,16,41,0.9)');
+      x.fillStyle=gy; x.fillRect(b.x,base-b.h,b.w,b.h);
+      x.strokeStyle='rgba(96,165,250,0.25)'; x.lineWidth=1; x.strokeRect(b.x,base-b.h,b.w,b.h);
+      // 창문 불빛
+      x.fillStyle='rgba(125,211,252,0.5)';
+      for(let wy=base-b.h+8; wy<base-6; wy+=14){ for(let wx=b.x+5; wx<b.x+b.w-5; wx+=12){ if(Math.random()>0.55){ x.globalAlpha=0.3+Math.random()*0.5; x.fillRect(wx,wy,4,6); } } }
+      x.globalAlpha=1;
+    });
+  }
   function loop(){
-    x.clearRect(0,0,W,H);
-    stars.forEach(s=>{ s.tw+=s.sp; const a=(Math.sin(s.tw)*0.4+0.5); x.globalAlpha=a*0.8; x.fillStyle='#fff'; x.beginPath(); x.arc(s.x,s.y,s.r,0,7); x.fill(); });
-    falls.forEach(f=>{ x.globalAlpha=f.a; const grad=x.createLinearGradient(f.x,f.y,f.x-f.len*0.5,f.y+f.len); grad.addColorStop(0,'rgba(245,215,142,0.9)'); grad.addColorStop(1,'rgba(245,215,142,0)');
-      x.strokeStyle=grad; x.lineWidth=2; x.beginPath(); x.moveTo(f.x,f.y); x.lineTo(f.x-f.len*0.5,f.y+f.len); x.stroke();
-      f.x-=f.sp*0.5; f.y+=f.sp; if(f.y>H){ Object.assign(f,newFall()); } });
-    x.globalAlpha=1; requestAnimationFrame(loop);
+    t+=0.01; x.clearRect(0,0,W,H);
+    stars.forEach(s=>{ s.tw+=s.sp; const a=(Math.sin(s.tw)*0.4+0.5); x.globalAlpha=a*0.8; x.fillStyle='#dbeafe'; x.beginPath(); x.arc(s.x,s.y,s.r,0,7); x.fill(); });
+    x.globalAlpha=1; drawGlobe();
+    falls.forEach(f=>{ x.globalAlpha=f.a; const grad=x.createLinearGradient(f.x,f.y,f.x,f.y+f.len); grad.addColorStop(0,'rgba(125,211,252,0.9)'); grad.addColorStop(1,'rgba(125,211,252,0)');
+      x.strokeStyle=grad; x.lineWidth=1.6; x.beginPath(); x.moveTo(f.x,f.y); x.lineTo(f.x,f.y+f.len); x.stroke();
+      f.y+=f.sp; if(f.y>H){ Object.assign(f,newFall()); } });
+    x.globalAlpha=0.85; drawCity(); x.globalAlpha=1;
+    requestAnimationFrame(loop);
   }
   loop();
 }
