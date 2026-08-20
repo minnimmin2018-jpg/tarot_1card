@@ -8,7 +8,8 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { height:100%; }
   body {
-    background:#05030f; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#f0e6ff;
+    background:linear-gradient(180deg,#0a1230 0%,#070d22 45%,#03060f 100%);
+    font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#f0e6ff;
     overflow:hidden; user-select:none;
   }
   #bgCanvas { position:fixed; inset:0; z-index:0; }
@@ -21,11 +22,10 @@
   .ring.r2::before { background:#60a5fa; box-shadow:0 0 12px #60a5fa; }
   .ring.r3::before { background:#06b6d4; box-shadow:0 0 12px #06b6d4; }
   @keyframes spin { to{ transform:rotate(360deg); } }
-  .grid-glow { position:fixed; inset:0; z-index:0; pointer-events:none;
+  .grid-glow { position:fixed; inset:0; z-index:1; pointer-events:none;
     background:
-      radial-gradient(ellipse 55% 45% at 50% 30%, rgba(37,99,235,.28), transparent 68%),
-      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(6,182,212,.18), transparent 70%),
-      linear-gradient(180deg,#081029 0%,#040814 100%);
+      radial-gradient(ellipse 55% 45% at 50% 30%, rgba(37,99,235,.16), transparent 68%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(6,182,212,.12), transparent 70%);
   }
 
   .screen {
@@ -569,60 +569,79 @@ function wrapText(x,text,cx,cy,maxW,lh){
 }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
 
-/* ══ 배경 애니메이션 (메타버스: 와이어프레임 구체 + 사이버 도시 + 별빛) ══ */
+/* ══ 배경 애니메이션 (메타버스 신비 버전) ══ */
 function initBg(){
   const cv=document.getElementById('bgCanvas'), x=cv.getContext('2d');
-  let W,H,stars=[],falls=[],city=[],t=0;
+  let W,H,stars=[],falls=[],dust=[],city=[],nebula=[],shoot=null,t=0;
+  const STAR_COLORS=['#dbeafe','#a5b4fc','#7dd3fc','#f5d78e','#c4b5fd','#ffffff'];
   function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; buildCity(); }
-  function buildCity(){
-    city=[]; let cx=0;
-    while(cx<W){ const w=Math.random()*46+24; const h=Math.random()*140+40; city.push({x:cx,w,h}); cx+=w+Math.random()*10; }
-  }
+  function buildCity(){ city=[]; let cx=0; while(cx<W){ const w=Math.random()*46+24; const h=Math.random()*150+40; city.push({x:cx,w,h,lit:Math.random()>0.5}); cx+=w+Math.random()*10; } }
   resize(); addEventListener('resize',resize);
-  for(let i=0;i<150;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+0.3,tw:Math.random()*6.28,sp:Math.random()*0.03+0.01});
-  for(let i=0;i<30;i++) falls.push(newFall());
-  function newFall(){ return {x:Math.random()*W,y:Math.random()*-H,len:Math.random()*70+30,sp:Math.random()*3+2,a:Math.random()*0.45+0.25}; }
+  for(let i=0;i<220;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.7+0.3,tw:Math.random()*6.28,sp:Math.random()*0.04+0.008,c:STAR_COLORS[Math.floor(Math.random()*STAR_COLORS.length)]});
+  for(let i=0;i<38;i++) falls.push(newFall());
+  for(let i=0;i<50;i++) dust.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+0.4,vx:(Math.random()-0.5)*0.25,vy:(Math.random()-0.5)*0.25,a:Math.random()*0.4+0.15});
+  nebula=[
+    {x:0.28,y:0.28,r:0.42,c:'124,58,237',a:0.16},
+    {x:0.72,y:0.35,r:0.40,c:'6,130,220',a:0.15},
+    {x:0.5,y:0.72,r:0.5,c:'14,165,190',a:0.12},
+    {x:0.15,y:0.6,r:0.32,c:'168,85,247',a:0.10},
+  ];
+  function newFall(){ return {x:Math.random()*W,y:Math.random()*-H,len:Math.random()*80+30,sp:Math.random()*3+2,a:Math.random()*0.5+0.25}; }
 
+  function drawNebula(){
+    nebula.forEach((n,i)=>{
+      const cx=n.x*W, cy=n.y*H, R=n.r*Math.max(W,H);
+      const pulse=0.85+0.15*Math.sin(t*0.4+i);
+      const g=x.createRadialGradient(cx,cy,0,cx,cy,R);
+      g.addColorStop(0,`rgba(${n.c},${n.a*pulse})`); g.addColorStop(1,`rgba(${n.c},0)`);
+      x.fillStyle=g; x.beginPath(); x.arc(cx,cy,R,0,7); x.fill();
+    });
+  }
   function drawGlobe(){
-    const gx=W/2, gy=H*0.34, R=Math.min(W,H)*0.28;
-    // 후광
-    const gl=x.createRadialGradient(gx,gy,R*0.3,gx,gy,R*1.5);
-    gl.addColorStop(0,'rgba(37,99,235,0.20)'); gl.addColorStop(1,'rgba(37,99,235,0)');
-    x.fillStyle=gl; x.beginPath(); x.arc(gx,gy,R*1.5,0,7); x.fill();
-    x.strokeStyle='rgba(96,165,250,0.28)'; x.lineWidth=1;
-    // 경선 (회전)
-    for(let i=0;i<7;i++){
-      const rx=Math.abs(R*Math.cos(t*0.3+i*Math.PI/7));
-      x.beginPath(); x.ellipse(gx,gy,rx,R,0,0,7); x.stroke();
-    }
-    // 위선
-    for(let i=1;i<6;i++){
-      const yy=gy-R+ (2*R)*(i/6); const rr=Math.sqrt(Math.max(0,R*R-(yy-gy)*(yy-gy)));
-      x.beginPath(); x.ellipse(gx,yy,rr,rr*0.16,0,0,7); x.stroke();
-    }
-    x.strokeStyle='rgba(125,211,252,0.4)'; x.beginPath(); x.arc(gx,gy,R,0,7); x.stroke();
+    const gx=W/2, gy=H*0.33, R=Math.min(W,H)*0.27;
+    const gl=x.createRadialGradient(gx,gy,R*0.2,gx,gy,R*1.6);
+    gl.addColorStop(0,'rgba(56,120,235,0.28)'); gl.addColorStop(0.6,'rgba(37,99,235,0.10)'); gl.addColorStop(1,'rgba(37,99,235,0)');
+    x.fillStyle=gl; x.beginPath(); x.arc(gx,gy,R*1.6,0,7); x.fill();
+    x.lineWidth=1;
+    x.strokeStyle='rgba(125,211,252,0.30)';
+    for(let i=0;i<9;i++){ const rx=Math.abs(R*Math.cos(t*0.25+i*Math.PI/9)); x.beginPath(); x.ellipse(gx,gy,rx,R,0,0,7); x.stroke(); }
+    x.strokeStyle='rgba(148,180,255,0.22)';
+    for(let i=1;i<7;i++){ const yy=gy-R+(2*R)*(i/7); const rr=Math.sqrt(Math.max(0,R*R-(yy-gy)*(yy-gy))); x.beginPath(); x.ellipse(gx,yy,rr,rr*0.16,0,0,7); x.stroke(); }
+    x.strokeStyle='rgba(160,220,255,0.5)'; x.lineWidth=1.4; x.beginPath(); x.arc(gx,gy,R,0,7); x.stroke();
+    // 궤도 위를 도는 빛 입자
+    for(let i=0;i<3;i++){ const ang=t*0.6+i*2.1; const px=gx+Math.cos(ang)*R, py=gy+Math.sin(ang)*R*0.34; x.fillStyle='rgba(190,230,255,0.9)'; x.beginPath(); x.arc(px,py,2.2,0,7); x.fill(); }
   }
   function drawCity(){
     const base=H;
     city.forEach(b=>{
       const gy=x.createLinearGradient(0,base-b.h,0,base);
-      gy.addColorStop(0,'rgba(30,58,138,0.55)'); gy.addColorStop(1,'rgba(8,16,41,0.9)');
+      gy.addColorStop(0,'rgba(30,58,138,0.5)'); gy.addColorStop(1,'rgba(8,16,41,0.92)');
       x.fillStyle=gy; x.fillRect(b.x,base-b.h,b.w,b.h);
-      x.strokeStyle='rgba(96,165,250,0.25)'; x.lineWidth=1; x.strokeRect(b.x,base-b.h,b.w,b.h);
-      // 창문 불빛
-      x.fillStyle='rgba(125,211,252,0.5)';
-      for(let wy=base-b.h+8; wy<base-6; wy+=14){ for(let wx=b.x+5; wx<b.x+b.w-5; wx+=12){ if(Math.random()>0.55){ x.globalAlpha=0.3+Math.random()*0.5; x.fillRect(wx,wy,4,6); } } }
+      x.strokeStyle='rgba(96,165,250,0.22)'; x.lineWidth=1; x.strokeRect(b.x,base-b.h,b.w,b.h);
+      x.fillStyle='rgba(125,211,252,0.55)';
+      for(let wy=base-b.h+8; wy<base-6; wy+=14){ for(let wx=b.x+5; wx<b.x+b.w-5; wx+=12){ if((wx+wy)%3===0){ x.globalAlpha=0.25+0.35*(0.5+0.5*Math.sin(t*2+wx+wy)); x.fillRect(wx,wy,4,6); } } }
       x.globalAlpha=1;
     });
   }
+  function maybeShoot(){
+    if(!shoot && Math.random()<0.004){ shoot={x:Math.random()*W*0.6,y:Math.random()*H*0.3,vx:Math.random()*7+6,vy:Math.random()*3+2,life:0}; }
+    if(shoot){ const s=shoot; const g=x.createLinearGradient(s.x,s.y,s.x-s.vx*8,s.y-s.vy*8); g.addColorStop(0,'rgba(255,255,255,0.95)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      x.strokeStyle=g; x.lineWidth=2; x.beginPath(); x.moveTo(s.x,s.y); x.lineTo(s.x-s.vx*8,s.y-s.vy*8); x.stroke();
+      s.x+=s.vx; s.y+=s.vy; s.life++; if(s.life>60||s.x>W) shoot=null; }
+  }
   function loop(){
     t+=0.01; x.clearRect(0,0,W,H);
-    stars.forEach(s=>{ s.tw+=s.sp; const a=(Math.sin(s.tw)*0.4+0.5); x.globalAlpha=a*0.8; x.fillStyle='#dbeafe'; x.beginPath(); x.arc(s.x,s.y,s.r,0,7); x.fill(); });
+    drawNebula();
+    stars.forEach(s=>{ s.tw+=s.sp; const a=(Math.sin(s.tw)*0.45+0.5); x.globalAlpha=a; x.fillStyle=s.c; x.beginPath(); x.arc(s.x,s.y,s.r,0,7); x.fill();
+      if(s.r>1.3){ x.globalAlpha=a*0.5; x.beginPath(); x.arc(s.x,s.y,s.r*2.4,0,7); x.fillStyle=s.c; } });
     x.globalAlpha=1; drawGlobe();
-    falls.forEach(f=>{ x.globalAlpha=f.a; const grad=x.createLinearGradient(f.x,f.y,f.x,f.y+f.len); grad.addColorStop(0,'rgba(125,211,252,0.9)'); grad.addColorStop(1,'rgba(125,211,252,0)');
-      x.strokeStyle=grad; x.lineWidth=1.6; x.beginPath(); x.moveTo(f.x,f.y); x.lineTo(f.x,f.y+f.len); x.stroke();
+    dust.forEach(d=>{ x.globalAlpha=d.a*(0.6+0.4*Math.sin(t*1.5+d.x)); x.fillStyle='#bcd4ff'; x.beginPath(); x.arc(d.x,d.y,d.r,0,7); x.fill();
+      d.x+=d.vx; d.y+=d.vy; if(d.x<0)d.x=W; if(d.x>W)d.x=0; if(d.y<0)d.y=H; if(d.y>H)d.y=0; });
+    falls.forEach(f=>{ x.globalAlpha=f.a; const g=x.createLinearGradient(f.x,f.y,f.x,f.y+f.len); g.addColorStop(0,'rgba(180,220,255,0.9)'); g.addColorStop(1,'rgba(180,220,255,0)');
+      x.strokeStyle=g; x.lineWidth=1.6; x.beginPath(); x.moveTo(f.x,f.y); x.lineTo(f.x,f.y+f.len); x.stroke();
       f.y+=f.sp; if(f.y>H){ Object.assign(f,newFall()); } });
-    x.globalAlpha=0.85; drawCity(); x.globalAlpha=1;
+    x.globalAlpha=1; maybeShoot();
+    x.globalAlpha=0.8; drawCity(); x.globalAlpha=1;
     requestAnimationFrame(loop);
   }
   loop();
