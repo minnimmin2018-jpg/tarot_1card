@@ -40,9 +40,9 @@
   .brand { margin-bottom:26px; }
   .brand-ko { font-size:1.45rem; font-weight:900; line-height:1.32; letter-spacing:1px; color:#fff; margin-bottom:12px; text-shadow:0 2px 12px rgba(0,0,0,.6); }
   .brand-ko .c-ai { color:#f59e0b; }
-  .brand-logo { margin-bottom:8px; }
+  .brand-logo { margin-bottom:10px; }
   .brand-logo .gamff-svg { height:64px; }
-  .brand-logo img { max-height:76px; max-width:300px; }
+  .brand-logo img { max-height:96px; max-width:340px; }
   .brand-en { font-size:.6rem; letter-spacing:1.6px; color:#9fb4d4; font-weight:bold; line-height:1.5; }
 
   .gold { background:linear-gradient(90deg,#c9a96e,#f5d78e,#c9a96e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
@@ -376,7 +376,17 @@ function processLogo(cb){
         // 밝으면서 채도가 낮은 픽셀(흰색·회색 격자·노이즈)은 완전 투명. 채도 높은 컬러 글자와 어두운(남색) 부분은 그대로.
         if(mx>150 && sat<45){ p[i+3]=0; }
       }
-      x.putImageData(d,0,0); LOGO_SRC=c.toDataURL('image/png');
+      x.putImageData(d,0,0);
+      // 투명 여백 자동 크롭 (실제 로고 영역만 남김)
+      let minX=c.width,minY=c.height,maxX=-1,maxY=-1;
+      for(let yy=0; yy<c.height; yy++){ for(let xx=0; xx<c.width; xx++){ if(p[(yy*c.width+xx)*4+3]>12){ if(xx<minX)minX=xx; if(xx>maxX)maxX=xx; if(yy<minY)minY=yy; if(yy>maxY)maxY=yy; } } }
+      if(maxX>=minX && maxY>=minY){
+        const pad=8, sx=Math.max(0,minX-pad), sy=Math.max(0,minY-pad);
+        const cw=Math.min(c.width-sx, maxX-minX+1+pad*2), ch=Math.min(c.height-sy, maxY-minY+1+pad*2);
+        const cc=document.createElement('canvas'); cc.width=cw; cc.height=ch;
+        cc.getContext('2d').drawImage(c, sx,sy,cw,ch, 0,0,cw,ch);
+        LOGO_SRC=cc.toDataURL('image/png');
+      } else { LOGO_SRC=c.toDataURL('image/png'); }
     }catch(e){ LOGO_SRC=CONFIG.LOGO_URL; }
     cb&&cb();
   };
