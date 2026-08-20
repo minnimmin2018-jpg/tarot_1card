@@ -60,12 +60,12 @@
   textarea::placeholder { color:#6b5a9a; }
 
   /* 감정 선택 */
-  .emo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; max-width:560px; width:100%; margin-bottom:30px; }
+  .emo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:600px; width:100%; margin-bottom:26px; }
   .emo {
-    padding:22px 12px; border-radius:16px; cursor:pointer; font-size:1.05rem; font-weight:bold;
+    padding:15px 8px; border-radius:14px; cursor:pointer; font-size:.9rem; font-weight:bold; line-height:1.3;
     background:rgba(255,255,255,.05); border:1.5px solid rgba(201,169,110,.3); color:#e8dcff; transition:all .18s;
   }
-  .emo .emo-ico { display:block; font-size:1.9rem; margin-bottom:8px; }
+  .emo .emo-ico { display:block; font-size:1.7rem; margin-bottom:6px; }
   .emo:hover { border-color:#c9a96e; background:rgba(201,169,110,.12); transform:translateY(-3px); }
   .emo:active { transform:scale(.96); }
 
@@ -195,6 +195,7 @@
 <div class="demo-note" id="demoNote">데모 모드</div>
 <div class="toast" id="toast"></div>
 <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+<div id="ytbgm" style="position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;"></div>
 
 <!-- 시작 -->
 <section class="screen active" id="screen-start">
@@ -291,15 +292,26 @@ const CONFIG = {
   OPENAI_MODEL:'gpt-4o-mini',
   LOGO_URL:'',                     // 예: 'logo.png' (배경 투명 PNG)
   EVENT_NAME:'2026 경상북도 국제 AI·메타버스 영상제',
-  BGM_URL:'',                      // 배경음악 파일 경로 (예: 'bgm.mp3'). 비우면 BGM 없음.
+  BGM_URL:'',                      // 배경음악 파일 경로 (예: 'bgm.mp3'). 있으면 이걸 우선 사용.
+  BGM_YOUTUBE_ID:'vrCgLIHKxeU',    // 유튜브 배경음(신비로운 트랙). BGM_URL이 비어있을 때 사용. 비우면 BGM 없음.
   AUTO_RESET_SEC:120,
   TONE:'따뜻하고 위로가 되는 다정한 말투로, 희망을 주되 뻔하지 않게',
 };
 
 /* ── 감정 선택지 ── */
 const EMOTIONS = [
-  {ico:'😟',label:'불안함'},{ico:'✨',label:'기대됨'},{ico:'😮‍💨',label:'지침'},
-  {ico:'💗',label:'설렘'},{ico:'🌫️',label:'막막함'},{ico:'🤔',label:'궁금함'},
+  {ico:'😄',label:'즐거움 / 신남'},
+  {ico:'💗',label:'설렘 / 기대됨'},
+  {ico:'😊',label:'행복함 / 만족스러움'},
+  {ico:'🔥',label:'활력 / 열정적'},
+  {ico:'🤩',label:'호기심 / 흥미진진'},
+  {ico:'😟',label:'불안함 / 초조함'},
+  {ico:'🌫️',label:'막막함 / 답답함'},
+  {ico:'🤔',label:'고민중 / 갈등'},
+  {ico:'😮‍💨',label:'지침 / 번아웃'},
+  {ico:'🥺',label:'위로필요 / 쓸쓸함'},
+  {ico:'😌',label:'평온함 / 차분함'},
+  {ico:'🎈',label:'가벼움 / 단순재미'},
 ];
 
 /* ── 별자리 선택지 ── */
@@ -348,7 +360,8 @@ const LUCKY={
 
 /* ── 상태 ── */
 let concern="", emotion="", zodiac="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="", lastBlocks=[];
-let soundOn=true, audioCtx=null, bgmEl=null;
+let soundOn=true, audioCtx=null, bgmEl=null, ytPlayer=null, ytReady=false, userGestured=false;
+function tryStartYT(){ if(soundOn&&ytPlayer&&ytReady){ try{ ytPlayer.playVideo(); }catch(e){} } }
 
 /* ── 화면 전환 ── */
 function go(name){
@@ -374,7 +387,24 @@ function toggleSound(){
   soundOn=!soundOn;
   document.getElementById('soundToggle').textContent=soundOn?'🔊':'🔇';
   if(bgmEl){ if(soundOn){ bgmEl.play().catch(()=>{}); } else { bgmEl.pause(); } }
+  if(ytPlayer&&ytReady){ try{ soundOn?ytPlayer.playVideo():ytPlayer.pauseVideo(); }catch(e){} }
   if(soundOn) clickSound();
+}
+// 유튜브 배경음 초기화
+function initYouTubeBGM(){
+  window.onYouTubeIframeAPIReady=function(){
+    ytPlayer=new YT.Player('ytbgm',{
+      height:'1', width:'1',
+      videoId:CONFIG.BGM_YOUTUBE_ID,
+      playerVars:{autoplay:0,controls:0,loop:1,playlist:CONFIG.BGM_YOUTUBE_ID,disablekb:1,fs:0,modestbranding:1,playsinline:1},
+      events:{
+        onReady:()=>{ ytReady=true; try{ ytPlayer.setVolume(28); }catch(e){} if(userGestured) tryStartYT(); },
+        onStateChange:(e)=>{ if(e.data===YT.PlayerState.ENDED){ try{ ytPlayer.playVideo(); }catch(e){} } }
+      }
+    });
+  };
+  const tag=document.createElement('script'); tag.src='https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
 }
 
 /* ── 고민 → 감정 ── */
@@ -583,10 +613,10 @@ function localReading(){
   const zsuffix=zodiac?` ${zodiac}인 당신에게는 특히 이 흐름이 의미 있게 다가올 거예요.`:'';
   const blocks=[
     `과거의 자리에 놓인 '${p.card.ko}' 카드는 ${m(p)}의 기운을 담고 있어요. 지금 당신이 겪는 상황의 뿌리가 바로 여기에 있어요. 그동안 쌓아온 경험과 선택들이 지금의 당신을 만들어왔다는 걸 카드가 조용히 일러줍니다. ${a(p)}`,
-    `현재의 자리에서 '${c.card.ko}' 카드는 ${m(c)}를 이야기하고 있어요. 지금 당신이 느끼는 '${emotion}'한 마음과 이 카드는 깊이 맞닿아 있어요. 이 감정은 약함이 아니라, 당신이 진심으로 이 문제를 마주하고 있다는 증거예요. ${a(c)}`,
+    `현재의 자리에서 '${c.card.ko}' 카드는 ${m(c)}를 이야기하고 있어요. 지금 당신이 느끼는 '${emotion}'의 마음과 이 카드는 깊이 맞닿아 있어요. 그 감정은 약함이 아니라, 당신이 진심으로 이 문제를 마주하고 있다는 증거예요. ${a(c)}`,
     `미래의 자리에서 '${f.card.ko}' 카드는 ${m(f)}를 향해 흐르고 있어요. 아직 오지 않은 시간이지만, 카드는 그 방향이 분명히 움직이고 있음을 보여줘요. 당신의 오늘의 선택이 이 흐름을 더 밝게 만들 수 있어요. ${a(f)}`,
   ];
-  const final=`"${concern}"라는 당신의 고민에, 세 장의 카드는 이렇게 답해요. 과거의 ${p.card.ko}에서 시작된 흐름이 현재의 ${c.card.ko}를 지나 미래의 ${f.card.ko}로 이어지고 있어요. 지금의 '${emotion}'한 감정은 끝이 아니라 반드시 지나가는 길목이에요. 현재 자리에 ${c.card.ko} 카드가 나온 건, 당신이 이미 답의 실마리를 손에 쥐고 있다는 뜻이기도 해요. 조급해하지 말고, 오늘 할 수 있는 작은 한 걸음부터 시작해보세요.${zsuffix} 흐름은 분명히 당신 편이에요.`;
+  const final=`"${concern}"라는 당신의 고민에, 세 장의 카드는 이렇게 답해요. 과거의 ${p.card.ko}에서 시작된 흐름이 현재의 ${c.card.ko}를 지나 미래의 ${f.card.ko}로 이어지고 있어요. 지금 느끼시는 '${emotion}'의 감정은 끝이 아니라 반드시 지나가는 길목이에요. 현재 자리에 ${c.card.ko} 카드가 나온 건, 당신이 이미 답의 실마리를 손에 쥐고 있다는 뜻이기도 해요. 조급해하지 말고, 오늘 할 수 있는 작은 한 걸음부터 시작해보세요.${zsuffix} 흐름은 분명히 당신 편이에요.`;
   const finalLine=`오늘 이 카드들이, 당신의 하루에 작은 등불이 되길 바라요. 🌟`;
   return { blocks, final, finalLine, byAI:false };
 }
@@ -781,8 +811,13 @@ function initBg(){
   if(CONFIG.LOGO_URL) document.getElementById('brandLogo').innerHTML='<img src="'+CONFIG.LOGO_URL+'" alt="logo">';
   const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
   document.getElementById('demoNote').textContent=useAI?'AI 실시간':'데모 모드';
-  if(CONFIG.BGM_URL){ bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=true; bgmEl.volume=0.35;
-    document.body.addEventListener('click',()=>{ if(soundOn&&bgmEl.paused) bgmEl.play().catch(()=>{}); },{once:true}); }
+  if(CONFIG.BGM_URL){
+    bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=true; bgmEl.volume=0.35;
+    document.body.addEventListener('click',()=>{ if(soundOn&&bgmEl.paused) bgmEl.play().catch(()=>{}); },{once:true});
+  } else if(CONFIG.BGM_YOUTUBE_ID){
+    initYouTubeBGM();
+    document.body.addEventListener('click',()=>{ userGestured=true; tryStartYT(); });
+  }
   buildEmotions(); buildZodiac(); buildTicker(); initBg();
 })();
 </script>
