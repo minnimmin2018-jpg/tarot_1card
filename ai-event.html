@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 타로 상담소 · 영상제</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    background:#05030f; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#f0e6ff;
+    overflow:hidden; user-select:none;
+  }
+  #bgCanvas { position:fixed; inset:0; z-index:0; }
+  .orbits { position:fixed; inset:0; z-index:0; pointer-events:none; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .ring { position:absolute; border:1px solid rgba(124,58,237,.12); border-radius:50%; }
+  .ring.r1 { width:640px; height:640px; animation:spin 60s linear infinite; border-color:rgba(201,169,110,.1); }
+  .ring.r2 { width:920px; height:920px; animation:spin 90s linear infinite reverse; }
+  .ring.r3 { width:1240px; height:1240px; animation:spin 120s linear infinite; border-color:rgba(6,182,212,.08); }
+  .ring::before { content:''; position:absolute; top:-4px; left:50%; width:7px; height:7px; border-radius:50%; background:#f5d78e; box-shadow:0 0 12px #f5d78e; }
+  .ring.r2::before { background:#a855f7; box-shadow:0 0 12px #a855f7; }
+  .ring.r3::before { background:#06b6d4; box-shadow:0 0 12px #06b6d4; }
+  @keyframes spin { to{ transform:rotate(360deg); } }
+  .grid-glow { position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 25%, rgba(124,58,237,.22), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 15% 80%, rgba(6,182,212,.12), transparent 70%),
+      linear-gradient(180deg,#0a0620 0%,#05030f 100%);
+  }
+
+  .screen {
+    position:absolute; inset:0; z-index:2;
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px 24px; text-align:center;
+  }
+  .screen.active { display:flex; animation:fade .5s ease; }
+  @keyframes fade { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)} }
+
+  .logo-slot { min-height:64px; margin-bottom:18px; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#6b5a9a; letter-spacing:1px; }
+  .logo-slot img { max-height:88px; max-width:280px; }
+  .event-tag { font-size:.82rem; color:#8fb8e0; letter-spacing:2px; margin-bottom:24px; border:1px solid rgba(143,184,224,.3); padding:6px 18px; border-radius:999px; }
+
+  .gold { background:linear-gradient(90deg,#c9a96e,#f5d78e,#c9a96e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  h1 { font-size:2.7rem; font-weight:900; letter-spacing:3px; margin-bottom:14px; }
+  .sub { font-size:1.05rem; color:#c3b3e6; line-height:1.7; margin-bottom:38px; }
+
+  .btn { border:none; cursor:pointer; font-family:inherit; padding:18px 48px; border-radius:40px; font-size:1.15rem; font-weight:bold; letter-spacing:1px;
+    background:linear-gradient(135deg,#7c3aed,#c9a96e); color:#1a0533; box-shadow:0 8px 34px rgba(124,58,237,.4); transition:transform .18s; }
+  .btn:active { transform:scale(.96); }
+  .btn-ghost { background:transparent; border:2px solid #c9a96e; color:#f5d78e; box-shadow:none; padding:14px 34px; font-size:1rem; }
+
+  textarea { width:100%; max-width:560px; height:150px; resize:none; background:rgba(255,255,255,.07); border:1.5px solid rgba(201,169,110,.4);
+    border-radius:16px; color:#f0e6ff; font-size:1.15rem; font-family:inherit; padding:20px; outline:none; line-height:1.6; margin-bottom:26px; }
+  textarea:focus { border-color:#c9a96e; }
+  textarea::placeholder { color:#6b5a9a; }
+
+  /* 감정 선택 */
+  .emo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; max-width:560px; width:100%; margin-bottom:30px; }
+  .emo {
+    padding:22px 12px; border-radius:16px; cursor:pointer; font-size:1.05rem; font-weight:bold;
+    background:rgba(255,255,255,.05); border:1.5px solid rgba(201,169,110,.3); color:#e8dcff; transition:all .18s;
+  }
+  .emo .emo-ico { display:block; font-size:1.9rem; margin-bottom:8px; }
+  .emo:hover { border-color:#c9a96e; background:rgba(201,169,110,.12); transform:translateY(-3px); }
+  .emo:active { transform:scale(.96); }
+
+  /* 로딩 */
+  .analyze-orb { width:150px; height:150px; margin-bottom:30px; position:relative; display:flex; align-items:center; justify-content:center; }
+  .analyze-orb .core { width:96px; height:96px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#a855f7,#4338ca);
+    box-shadow:0 0 60px rgba(124,58,237,.7); animation:pulse 1.6s ease-in-out infinite; display:flex; align-items:center; justify-content:center; font-size:2.8rem; }
+  .analyze-orb .halo { position:absolute; inset:0; border:2px solid transparent; border-top-color:#f5d78e; border-radius:50%; animation:spin 1.4s linear infinite; }
+  .analyze-orb .halo2 { position:absolute; inset:14px; border:2px solid transparent; border-bottom-color:#06b6d4; border-radius:50%; animation:spin 2s linear infinite reverse; }
+  @keyframes pulse { 0%,100%{transform:scale(1); opacity:.92} 50%{transform:scale(1.08); opacity:1} }
+  .load-text { font-size:1.15rem; color:#d4c5f9; letter-spacing:1px; min-height:1.6em; }
+  .load-bar { width:260px; height:5px; background:rgba(255,255,255,.1); border-radius:3px; margin-top:22px; overflow:hidden; }
+  .load-fill { height:100%; width:0; background:linear-gradient(90deg,#7c3aed,#f5d78e); border-radius:3px; transition:width .3s linear; }
+
+  /* 카드 선택 */
+  .pick-prompt { font-size:1.5rem; font-weight:bold; margin-bottom:6px; }
+  .pick-prompt .gold { font-size:1.6rem; }
+  .pick-sub { font-size:.92rem; color:#a99bc9; margin-bottom:8px; }
+  .slots { display:flex; gap:16px; justify-content:center; margin-bottom:20px; }
+  .slot { width:64px; height:96px; border-radius:10px; border:2px dashed rgba(201,169,110,.35); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:.6rem; color:#8a7bb0; gap:3px; }
+  .slot .sslabel { font-size:.58rem; }
+  .slot.filled { border-style:solid; border-color:#c9a96e; background:rgba(201,169,110,.14); font-size:1.8rem; }
+  .fan { position:relative; width:100%; max-width:760px; height:220px; }
+  .pcard {
+    position:absolute; left:50%; top:20px; width:92px; height:146px; margin-left:-46px;
+    border-radius:12px; background:linear-gradient(145deg,#2d1b69,#160c32); border:2px solid #c9a96e; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:transform .2s, box-shadow .2s, opacity .4s;
+    transform-origin:bottom center;
+  }
+  .pcard::before { content:''; position:absolute; inset:7px; border:1px solid rgba(201,169,110,.4); border-radius:7px; }
+  .pcard .q { font-size:2rem; color:#c9a96e; opacity:.65; }
+  .pcard.dealt { animation:deal .5s ease both; }
+  @keyframes deal { from{ transform:translateY(160px) rotate(0) scale(.7); opacity:0; } }
+  .pcard:hover { box-shadow:0 0 22px rgba(201,169,110,.5); z-index:50; }
+  .pcard.taken { opacity:0; pointer-events:none; }
+  .pcard.glow { animation:glowpick .5s ease; }
+  @keyframes glowpick { 0%{box-shadow:0 0 0 rgba(245,215,142,0)} 40%{box-shadow:0 0 40px 12px rgba(245,215,142,.8)} 100%{box-shadow:0 0 0 rgba(245,215,142,0)} }
+
+  /* 결과 */
+  #screen-result { justify-content:flex-start; overflow-y:auto; padding-top:34px; padding-bottom:44px; }
+  .result-wrap { width:100%; max-width:640px; }
+  .rtitle { font-size:1.5rem; font-weight:bold; margin-bottom:8px; }
+  .concern-echo { background:rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.4); border-radius:12px; padding:12px 18px; font-size:.9rem; color:#d8b4fe; margin-bottom:8px; }
+  .emo-echo { font-size:.82rem; color:#9fb4d4; margin-bottom:20px; }
+  .block {
+    background:rgba(255,255,255,.045); border:1px solid rgba(201,169,110,.28); border-radius:16px;
+    padding:20px; margin-bottom:14px; text-align:left; display:flex; gap:16px; align-items:flex-start;
+  }
+  .block.rev { border-color:rgba(220,120,140,.35); }
+  .bcard {
+    flex-shrink:0; width:84px; padding:12px 6px; border-radius:12px; text-align:center;
+    background:linear-gradient(160deg,rgba(30,27,75,.95),rgba(49,46,129,.7)); border:1px solid rgba(201,169,110,.4);
+  }
+  .bcard.rev { background:linear-gradient(160deg,rgba(75,27,40,.95),rgba(129,46,60,.7)); }
+  .bcard .bp { font-size:.62rem; color:#a5b4fc; margin-bottom:4px; }
+  .bcard .bs { font-size:1.9rem; }
+  .bcard .bn { font-size:.72rem; font-weight:bold; color:#f5d78e; margin-top:3px; line-height:1.3; }
+  .bcard .bo { font-size:.56rem; padding:2px 6px; border-radius:6px; display:inline-block; margin-top:5px; }
+  .bo.up { background:rgba(100,149,237,.25); color:#9ec3ff; }
+  .bo.dn { background:rgba(220,80,100,.25); color:#ff9fb0; }
+  .btext { flex:1; }
+  .btext .bpos { font-size:.72rem; color:#c9a96e; letter-spacing:1px; margin-bottom:6px; }
+  .btext p { font-size:.95rem; color:#e8dcff; line-height:1.8; white-space:pre-line; }
+
+  .final-advice { background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(6,182,212,.12)); border:1px solid rgba(124,58,237,.35);
+    border-radius:16px; padding:20px; margin:8px 0 14px; text-align:left; }
+  .final-advice .fa-label { font-size:.72rem; color:#c9a96e; letter-spacing:1px; margin-bottom:8px; }
+  .final-advice p { font-size:1rem; color:#f0e6ff; line-height:1.85; white-space:pre-line; }
+
+  .lucky { background:linear-gradient(135deg,rgba(6,182,212,.12),rgba(124,58,237,.14)); border:1px solid rgba(6,182,212,.35); border-radius:16px; padding:20px; margin-bottom:20px; }
+  .lucky-title { font-size:1rem; color:#7dd3e8; letter-spacing:1px; margin-bottom:14px; font-weight:bold; }
+  .lucky-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
+  .lucky-box { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:12px; display:flex; align-items:center; gap:10px; }
+  .lucky-ico { font-size:1.5rem; }
+  .lucky-swatch { width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.5); flex-shrink:0; }
+  .lucky-k { font-size:.66rem; color:#9fb4d4; margin-bottom:2px; }
+  .lucky-v { font-size:.9rem; font-weight:bold; color:#e8f4ff; }
+  .lucky-msg { background:rgba(255,255,255,.05); border-radius:12px; padding:14px; text-align:center; font-size:.98rem; color:#dbeafe; line-height:1.7; }
+  .lucky-msg .lm-label { font-size:.7rem; color:#7dd3e8; display:block; margin-bottom:6px; letter-spacing:1px; }
+
+  .result-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .btn-save { background:linear-gradient(135deg,#0891b2,#06b6d4); color:#04252c; border:none; padding:15px 30px; border-radius:32px; font-size:1rem; font-weight:bold; cursor:pointer; box-shadow:0 6px 22px rgba(6,182,212,.35); }
+  .btn-save:active { transform:scale(.96); }
+
+  /* 사운드 토글 */
+  .sound-toggle { position:fixed; top:14px; left:14px; z-index:20; width:46px; height:46px; border-radius:50%;
+    background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15); color:#f5d78e; font-size:1.2rem; cursor:pointer; }
+  .demo-note { position:fixed; top:16px; right:14px; z-index:20; font-size:.66rem; color:#8a7bb0; background:rgba(0,0,0,.3); padding:5px 12px; border-radius:20px; border:1px solid rgba(255,255,255,.08); }
+
+  .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(20,20,40,.95); border:1px solid rgba(201,169,110,.4);
+    color:#f0e6ff; padding:12px 24px; border-radius:12px; z-index:30; opacity:0; transition:opacity .3s, transform .3s; font-size:.9rem; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="grid-glow"></div>
+<div class="orbits"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+
+<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
+<div class="demo-note" id="demoNote">데모 모드</div>
+<div class="toast" id="toast"></div>
+
+<!-- 시작 -->
+<section class="screen active" id="screen-start">
+  <div class="logo-slot" id="logoSlot">[ 영상제 로고 ]</div>
+  <div class="event-tag" id="eventTag">2026 경상북도 국제 AI 메타버스 영상제</div>
+  <h1 class="gold">AI 타로 상담소</h1>
+  <p class="sub">당신의 고민을 들려주세요.<br>AI가 별과 카드에 담긴 답을 읽어드립니다.</p>
+  <button class="btn" onclick="clickSound();go('concern')">✨ 체험 시작하기</button>
+</section>
+
+<!-- 고민 입력 -->
+<section class="screen" id="screen-concern">
+  <h1 style="font-size:1.8rem; margin-bottom:10px;">💭 어떤 고민이 있으신가요?</h1>
+  <p class="sub" style="margin-bottom:24px;">마음속 이야기를 자유롭게 적어주세요.</p>
+  <textarea id="concernInput" placeholder="예) 요즘 진로 때문에 너무 막막하고 불안해요. 지금 준비하는 길이 맞는 걸까요?"></textarea>
+  <button class="btn" onclick="submitConcern()">다음 →</button>
+</section>
+
+<!-- 감정 선택 -->
+<section class="screen" id="screen-emotion">
+  <h1 style="font-size:1.7rem; margin-bottom:8px;">지금 마음에 가장 가까운 감정은?</h1>
+  <p class="sub" style="margin-bottom:26px;">하나를 선택하시면 분석에 반영됩니다.</p>
+  <div class="emo-grid" id="emoGrid"></div>
+</section>
+
+<!-- 분석 로딩 -->
+<section class="screen" id="screen-analyze">
+  <div class="analyze-orb"><div class="halo"></div><div class="halo2"></div><div class="core">🔮</div></div>
+  <p class="load-text" id="analyzeText">AI가 별자리 궤도를 분석 중입니다...</p>
+  <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+</section>
+
+<!-- 카드 선택 -->
+<section class="screen" id="screen-cards">
+  <p class="pick-prompt" id="pickPrompt"><span class="gold">과거</span>의 카드를 선택하세요</p>
+  <p class="pick-sub">마음이 가는 카드를 한 장 뽑아주세요</p>
+  <div class="slots" id="slots">
+    <div class="slot" id="slot0"><span class="sslabel">과거</span></div>
+    <div class="slot" id="slot1"><span class="sslabel">현재</span></div>
+    <div class="slot" id="slot2"><span class="sslabel">미래</span></div>
+  </div>
+  <div class="fan" id="fan"></div>
+</section>
+
+<!-- 해석 로딩 -->
+<section class="screen" id="screen-reading-load">
+  <div class="analyze-orb"><div class="halo"></div><div class="halo2"></div><div class="core">✨</div></div>
+  <p class="load-text" id="readText">카드에 담긴 메시지를 풀어내는 중이에요...</p>
+  <div class="load-bar"><div class="load-fill" id="loadFill2"></div></div>
+</section>
+
+<!-- 결과 -->
+<section class="screen" id="screen-result">
+  <div class="result-wrap">
+    <div class="rtitle gold">🔮 당신을 위한 타로 리딩</div>
+    <div class="concern-echo" id="concernEcho"></div>
+    <div class="emo-echo" id="emoEcho"></div>
+    <div id="blocks"></div>
+    <div class="final-advice" id="finalAdvice"></div>
+    <div class="lucky" id="lucky"></div>
+    <div class="result-btns">
+      <button class="btn-save" onclick="savePhotocard()">📸 결과 이미지로 저장</button>
+      <button class="btn-ghost" onclick="clickSound();resetAll()">🔄 처음으로</button>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ══════════════════════════════════════════════
+   ⚙️ 설정 — 실제 사용 시 여기만 채우면 됩니다
+   ══════════════════════════════════════════════ */
+const CONFIG = {
+  AI_PROVIDER:'claude',            // 'claude' 또는 'openai'
+  API_KEY:'',                      // 발급받은 키. 비우면 데모 모드.
+  CLAUDE_MODEL:'claude-3-5-sonnet-20241022',
+  OPENAI_MODEL:'gpt-4o-mini',
+  LOGO_URL:'',                     // 예: 'logo.png' (배경 투명 PNG)
+  EVENT_NAME:'2026 경상북도 국제 AI 메타버스 영상제',
+  BGM_URL:'',                      // 배경음악 파일 경로 (예: 'bgm.mp3'). 비우면 BGM 없음.
+  AUTO_RESET_SEC:120,
+  TONE:'따뜻하고 위로가 되는 다정한 말투로, 희망을 주되 뻔하지 않게',
+};
+
+/* ── 감정 선택지 ── */
+const EMOTIONS = [
+  {ico:'😟',label:'불안함'},{ico:'✨',label:'기대됨'},{ico:'😮‍💨',label:'지침'},
+  {ico:'💗',label:'설렘'},{ico:'🌫️',label:'막막함'},{ico:'🤔',label:'궁금함'},
+];
+
+/* ── 타로 카드 22장 ── */
+const CARDS = [
+  {n:0,ko:"바보",en:"The Fool",s:"🃏",up:"새로운 시작과 무한한 가능성",dn:"준비 없는 충동과 경솔함",ua:"두려움을 내려놓고 한 발 내딛으세요.",da:"흥분된 결정은 하룻밤 뒤 다시 보세요."},
+  {n:1,ko:"마법사",en:"The Magician",s:"✨",up:"의지로 현실을 창조하는 힘",dn:"집중력 분산과 헛된 과신",ua:"당신은 이미 필요한 걸 다 갖췄어요.",da:"화려함 뒤 실체를 직시하세요."},
+  {n:2,ko:"여사제",en:"High Priestess",s:"🌙",up:"내면의 직관과 숨은 지혜",dn:"억압된 감정과 혼란",ua:"가슴이 이미 답을 알고 있어요.",da:"숨긴 감정을 드러낼 용기를 내세요."},
+  {n:3,ko:"여황제",en:"The Empress",s:"🌿",up:"풍요와 따뜻한 사랑",dn:"집착과 과잉 의존",ua:"스스로를 사랑하고 돌보는 게 먼저예요.",da:"집착보다 균형 잡힌 베풂을."},
+  {n:4,ko:"황제",en:"The Emperor",s:"👑",up:"안정적 권위와 단단한 구조",dn:"경직과 통제 집착",ua:"기초를 튼튼히 할 때예요.",da:"내 방식만 고집하지 마세요."},
+  {n:5,ko:"교황",en:"Hierophant",s:"⛪",up:"전통과 가르침, 신뢰",dn:"낡은 관습에의 집착",ua:"경험 많은 이의 조언을 구하세요.",da:"나만의 신념을 찾아갈 때예요."},
+  {n:6,ko:"연인",en:"The Lovers",s:"💞",up:"깊은 사랑과 진실한 선택",dn:"잘못된 선택, 가치관 충돌",ua:"마음이 가는 방향이 맞아요.",da:"도피적 선택은 혼란만 키워요."},
+  {n:7,ko:"전차",en:"The Chariot",s:"⚡",up:"강한 의지와 전진의 힘",dn:"방향 상실과 감정 충돌",ua:"목표가 명확하면 빠르게 나아가요.",da:"속도를 줄이고 방향을 점검하세요."},
+  {n:8,ko:"힘",en:"Strength",s:"🦁",up:"온화한 인내와 내면의 강인함",dn:"자기 불신과 두려움",ua:"진짜 힘은 온화함에서 나와요.",da:"두려움과 마주하는 게 이기는 길이에요."},
+  {n:9,ko:"은둔자",en:"The Hermit",s:"🏮",up:"내면 성찰과 지혜 탐구",dn:"고립과 방향 상실",ua:"모든 답은 내 안에 있어요.",da:"때론 세상 밖으로 나와 연결되세요."},
+  {n:10,ko:"운명의 수레바퀴",en:"Wheel of Fortune",s:"🎡",up:"행운과 변화의 전환점",dn:"역행과 저항",ua:"기회의 파도가 왔어요, 잡으세요.",da:"힘든 시기도 결국 지나가요."},
+  {n:11,ko:"정의",en:"Justice",s:"⚖️",up:"공정한 균형과 진실",dn:"불균형과 책임 회피",ua:"공정하게 행동하면 결과가 따라와요.",da:"정직함이 가장 강한 방패예요."},
+  {n:12,ko:"매달린 남자",en:"Hanged Man",s:"🙃",up:"내려놓음과 새로운 시각",dn:"강요된 희생과 정체",ua:"지금의 멈춤은 도약을 위한 충전이에요.",da:"불필요한 고통에 의미 두지 마세요."},
+  {n:13,ko:"죽음",en:"Death",s:"🌑",up:"완전한 변화와 재탄생",dn:"변화 거부와 집착",ua:"낡은 게 끝나야 새것이 시작돼요.",da:"억지로 붙잡으면 고통만 커져요."},
+  {n:14,ko:"절제",en:"Temperance",s:"🌈",up:"균형과 조화로운 흐름",dn:"과잉과 불균형",ua:"차근차근 쌓아가면 돼요.",da:"어느 부분이 과한지 살펴보세요."},
+  {n:15,ko:"악마",en:"The Devil",s:"⛓️",up:"강렬한 욕망과 집착",dn:"속박에서 벗어나는 해방",ua:"사슬은 느슨해요, 언제든 떠날 수 있어요.",da:"이미 자유로워질 준비가 됐어요."},
+  {n:16,ko:"탑",en:"The Tower",s:"🌩️",up:"갑작스러운 붕괴와 해방",dn:"변화 저항과 은폐",ua:"무너짐은 더 단단한 기반의 기회예요.",da:"숨긴 문제는 사라지지 않아요."},
+  {n:17,ko:"별",en:"The Star",s:"⭐",up:"희망과 치유, 회복",dn:"절망과 비현실적 기대",ua:"진짜 나로 돌아오는 게 회복의 시작이에요.",da:"희망과 환상을 구분해보세요."},
+  {n:18,ko:"달",en:"The Moon",s:"🌕",up:"무의식과 직관, 신비",dn:"혼란이 걷히고 진실이 드러남",ua:"보이는 게 전부가 아닐 수 있어요.",da:"어둠 속에도 길은 있어요, 나아가세요."},
+  {n:19,ko:"태양",en:"The Sun",s:"☀️",up:"기쁨과 성공, 밝은 에너지",dn:"과신과 자아도취",ua:"마음껏 기뻐하고 축하하세요.",da:"빛이 강할수록 그림자도 짙어요."},
+  {n:20,ko:"심판",en:"Judgement",s:"🎺",up:"깊은 각성과 소명의 부름",dn:"자기 의심과 과거의 속박",ua:"소명의 부름에 응답할 때예요.",da:"자기 용서가 새 시작의 조건이에요."},
+  {n:21,ko:"세계",en:"The World",s:"🌍",up:"완성과 성취, 여정의 완결",dn:"미완성과 지연",ua:"완성한 자신을 온전히 축하하세요.",da:"거의 다 왔어요, 마지막까지 가세요."},
+];
+
+const POS=["과거","현재","미래"];
+const LUCKY={
+  colors:[{name:"골드",hex:"#f5d78e"},{name:"라벤더",hex:"#c4b5fd"},{name:"에메랄드",hex:"#6ee7b7"},{name:"코랄",hex:"#fca5a5"},{name:"스카이블루",hex:"#7dd3fc"},{name:"로즈핑크",hex:"#f9a8d4"},{name:"딥퍼플",hex:"#a855f7"},{name:"민트",hex:"#5eead4"},{name:"선셋오렌지",hex:"#fdba74"},{name:"터콰이즈",hex:"#2dd4bf"}],
+  directions:["동쪽","서쪽","남쪽","북쪽","남동쪽","북동쪽","남서쪽","북서쪽"],
+  items:["작은 노트","따뜻한 차 한 잔","향초","손편지","꽃 한 송이","좋아하는 음악","산책","작은 화분","일기장","향수"],
+  messages:["오늘의 작은 선택이 내일의 큰 길을 만들어요.","서두르지 않아도 괜찮아요. 당신은 제 속도로 잘 가고 있어요.","마음이 향하는 곳에 답이 있어요.","오늘 하루, 스스로에게 조금 더 다정해지세요.","작은 용기 하나가 하루를 바꿀 수 있어요.","당신이 바라는 좋은 일이 조용히 다가오고 있어요.","완벽하지 않아도 충분히 빛나고 있어요.","잠시 멈춰 숨을 고르는 것도 앞으로 나아가는 거예요."],
+};
+
+/* ── 상태 ── */
+let concern="", emotion="", chosen=[], resetTimer=null, lastLucky=null, lastAdvice="";
+let soundOn=true, audioCtx=null, bgmEl=null;
+
+/* ── 화면 전환 ── */
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+}
+
+/* ══ 사운드 (Web Audio, 파일 불필요) ══ */
+function ac(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return audioCtx; }
+function tone(freq,dur,type,vol){
+  if(!soundOn) return; const c=ac(); if(!c) return;
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type||'sine'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0,c.currentTime);
+  g.gain.linearRampToValueAtTime(vol||0.15,c.currentTime+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+(dur||0.3));
+  o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+(dur||0.3));
+}
+function clickSound(){ tone(520,0.12,'triangle',0.12); }
+function flipSound(){ tone(300,0.08,'square',0.08); setTimeout(()=>tone(680,0.14,'sine',0.12),60); }
+function chimeSound(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.5,'sine',0.13),i*110)); }
+function toggleSound(){
+  soundOn=!soundOn;
+  document.getElementById('soundToggle').textContent=soundOn?'🔊':'🔇';
+  if(bgmEl){ if(soundOn){ bgmEl.play().catch(()=>{}); } else { bgmEl.pause(); } }
+  if(soundOn) clickSound();
+}
+
+/* ── 고민 → 감정 ── */
+function submitConcern(){
+  clickSound();
+  const v=document.getElementById('concernInput').value.trim();
+  concern=v||"지금 제 마음이 어떤지, 어떤 방향으로 가야 할지 봐주세요.";
+  go('emotion');
+}
+function buildEmotions(){
+  const g=document.getElementById('emoGrid'); g.innerHTML='';
+  EMOTIONS.forEach(e=>{
+    const d=document.createElement('div'); d.className='emo';
+    d.innerHTML=`<span class="emo-ico">${e.ico}</span>${e.label}`;
+    d.onclick=()=>{ emotion=e.label; clickSound(); startAnalyze(); };
+    g.appendChild(d);
+  });
+}
+
+/* ── 분석 로딩 (약 6초) → 카드 ── */
+function startAnalyze(){
+  go('analyze');
+  const texts=["AI가 별자리 궤도를 분석 중입니다...","당신의 감정 에너지를 읽고 있어요...","운명의 카드 덱을 준비하고 있어요..."];
+  let ti=0; document.getElementById('analyzeText').textContent=texts[0];
+  const fill=document.getElementById('loadFill'); fill.style.width='0';
+  let p=0; const iv=setInterval(()=>{ p+=100/60; fill.style.width=Math.min(p,100)+'%'; if(p%33<2){ ti=(ti+1)%texts.length; document.getElementById('analyzeText').textContent=texts[ti]; } },100);
+  setTimeout(()=>{ clearInterval(iv); dealCards(); go('cards'); },6000);
+}
+
+/* ── 카드 셔플 & 순차 선택 ── */
+function dealCards(){
+  chosen=[];
+  [0,1,2].forEach(i=>{ const s=document.getElementById('slot'+i); s.className='slot'; s.innerHTML=`<span class="sslabel">${POS[i]}</span>`; });
+  updatePrompt();
+  const fan=document.getElementById('fan'); fan.innerHTML='';
+  const N=CARDS.length;
+  const order=[...Array(N).keys()].sort(()=>Math.random()-0.5);
+  order.forEach((idx,i)=>{
+    const d=document.createElement('div'); d.className='pcard dealt';
+    const ang=(i-(N-1)/2)*4.4; const x=(i-(N-1)/2)*44;
+    d.style.transform=`translateX(${x}px) rotate(${ang}deg)`;
+    d.style.zIndex=i; d.style.animationDelay=(i*0.03)+'s';
+    d.innerHTML='<span class="q">?</span>';
+    d.dataset.baseTf=`translateX(${x}px) rotate(${ang}deg)`;
+    d.onmouseenter=()=>{ if(!d.classList.contains('taken')) d.style.transform=d.dataset.baseTf+' translateY(-18px) scale(1.05)'; };
+    d.onmouseleave=()=>{ if(!d.classList.contains('taken')) d.style.transform=d.dataset.baseTf; };
+    d.onclick=()=>chooseCard(idx,d);
+    fan.appendChild(d);
+  });
+  flipSound();
+}
+function updatePrompt(){
+  const i=chosen.length;
+  if(i<3) document.getElementById('pickPrompt').innerHTML=`<span class="gold">${POS[i]}</span>의 카드를 선택하세요`;
+}
+function chooseCard(idx,el){
+  if(el.classList.contains('taken')||chosen.length>=3) return;
+  const rev=Math.random()<0.35;
+  chosen.push({card:CARDS[idx],rev});
+  el.classList.add('glow'); flipSound();
+  const slot=document.getElementById('slot'+(chosen.length-1));
+  slot.className='slot filled'; slot.textContent=CARDS[idx].s;
+  setTimeout(()=>{ el.classList.add('taken'); },380);
+  if(chosen.length>=3){ setTimeout(runReading,700); }
+  else updatePrompt();
+}
+
+/* ── 해석 실행 ── */
+async function runReading(){
+  go('reading-load');
+  const fill=document.getElementById('loadFill2'); fill.style.width='0';
+  let p=0; const iv=setInterval(()=>{ p+=3; fill.style.width=Math.min(p,95)+'%'; },100);
+  const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
+  let data=null;
+  try{ data = useAI ? await callAI() : null; }catch(e){ data=null; }
+  if(!data) data=localReading();
+  clearInterval(iv); fill.style.width='100%';
+  setTimeout(()=>renderResult(data, useAI&&data.byAI),400);
+}
+
+/* ── 결과 렌더 ── */
+function renderResult(data, byAI){
+  document.getElementById('demoNote').textContent = byAI?'AI 실시간':'데모 모드';
+  document.getElementById('concernEcho').textContent='💭 "'+concern+'"';
+  document.getElementById('emoEcho').textContent='현재 감정: '+emotion;
+  const blocks=document.getElementById('blocks');
+  blocks.innerHTML=chosen.map((c,i)=>`
+    <div class="block ${c.rev?'rev':''}">
+      <div class="bcard ${c.rev?'rev':''}">
+        <div class="bp">${POS[i]}</div>
+        <div class="bs">${c.card.s}</div>
+        <div class="bn">${c.card.ko}</div>
+        <div class="bo ${c.rev?'dn':'up'}">${c.rev?'역방향':'정방향'}</div>
+      </div>
+      <div class="btext"><div class="bpos">[ ${POS[i]} ] ${c.card.ko}</div><p>${data.blocks[i]}</p></div>
+    </div>`).join('');
+  document.getElementById('finalAdvice').innerHTML=`<div class="fa-label">✦ 종합 조언 ✦</div><p>${data.final}</p>`;
+  lastAdvice=data.finalLine;
+
+  const lk=buildLucky(); lastLucky=lk;
+  document.getElementById('lucky').innerHTML=`
+    <div class="lucky-title">🍀 오늘의 행운</div>
+    <div class="lucky-grid">
+      <div class="lucky-box"><div class="lucky-swatch" style="background:${lk.color.hex}"></div><div><div class="lucky-k">행운의 색</div><div class="lucky-v">${lk.color.name}</div></div></div>
+      <div class="lucky-box"><div class="lucky-ico">🔢</div><div><div class="lucky-k">행운의 숫자</div><div class="lucky-v">${lk.number}</div></div></div>
+      <div class="lucky-box"><div class="lucky-ico">🧭</div><div><div class="lucky-k">행운의 방향</div><div class="lucky-v">${lk.direction}</div></div></div>
+      <div class="lucky-box"><div class="lucky-ico">🎁</div><div><div class="lucky-k">행운의 아이템</div><div class="lucky-v">${lk.item}</div></div></div>
+    </div>
+    <div class="lucky-msg"><span class="lm-label">✦ 오늘의 한마디 ✦</span>${lk.message}</div>`;
+
+  go('result');
+  document.getElementById('screen-result').scrollTop=0;
+  chimeSound();
+  clearTimeout(resetTimer);
+  resetTimer=setTimeout(resetAll, CONFIG.AUTO_RESET_SEC*1000);
+}
+
+function buildLucky(){
+  const seed=chosen.reduce((a,c)=>a+c.card.n+(c.rev?7:0),0)+Math.floor(Math.random()*99);
+  const pick=(arr,o)=>arr[(seed+o)%arr.length];
+  return { color:pick(LUCKY.colors,1), number:(seed%9)+1, direction:pick(LUCKY.directions,2), item:pick(LUCKY.items,3), message:pick(LUCKY.messages,4) };
+}
+
+function resetAll(){
+  clearTimeout(resetTimer);
+  concern="";emotion="";chosen=[];
+  document.getElementById('concernInput').value='';
+  go('start');
+}
+
+/* ══ 실제 AI 호출 ══ */
+function buildPrompt(){
+  const lines=chosen.map((c,i)=>`${POS[i]}: ${c.card.ko}(${c.card.en}) ${c.rev?'역방향':'정방향'} — ${c.rev?c.card.dn:c.card.up}`).join('\n');
+  return `당신은 따뜻하고 지혜로운 타로 상담가입니다. 아래 정보를 바탕으로 ${CONFIG.TONE} 한국어 해석을 작성하세요.
+
+[고민] ${concern}
+[현재 감정] ${emotion}
+[뽑은 카드]
+${lines}
+
+아래 JSON 형식으로만 답하세요(설명 없이):
+{"past":"과거 카드 해석 2~3문장","present":"현재 카드 해석 2~3문장","future":"미래 카드 해석 2~3문장","final":"세 카드와 고민·감정을 엮은 종합 조언 3~4문장","finalLine":"핵심을 담은 따뜻한 한 문장"}`;
+}
+async function callAI(){
+  const prompt=buildPrompt(); let txt;
+  if(CONFIG.AI_PROVIDER==='openai'){
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+CONFIG.API_KEY},
+      body:JSON.stringify({model:CONFIG.OPENAI_MODEL,max_tokens:900,messages:[{role:'user',content:prompt}]})});
+    const d=await r.json(); txt=d.choices?.[0]?.message?.content;
+  } else {
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':CONFIG.API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:CONFIG.CLAUDE_MODEL,max_tokens:900,messages:[{role:'user',content:prompt}]})});
+    const d=await r.json(); txt=d.content?.[0]?.text;
+  }
+  if(!txt) return null;
+  try{
+    const j=JSON.parse(txt.slice(txt.indexOf('{'),txt.lastIndexOf('}')+1));
+    return { blocks:[j.past,j.present,j.future], final:j.final, finalLine:j.finalLine||j.final, byAI:true };
+  }catch(e){ return null; }
+}
+
+/* ══ 데모용 로컬 해석 ══ */
+function localReading(){
+  const [p,c,f]=chosen; const m=x=>x.rev?x.card.dn:x.card.up; const a=x=>x.rev?x.card.da:x.card.ua;
+  const blocks=[
+    `과거의 '${p.card.ko}' 카드는 ${m(p)}의 기운을 보여줘요. 지금 상황의 뿌리가 여기에 있어요. ${a(p)}`,
+    `현재의 '${c.card.ko}' 카드는 ${m(c)}를 말하고 있어요. 지금 당신의 '${emotion}'한 마음과 깊이 맞닿아 있어요. ${a(c)}`,
+    `미래의 '${f.card.ko}' 카드는 ${m(f)}로 향하고 있어요. 흐름은 분명히 움직이고 있어요. ${a(f)}`,
+  ];
+  const final=`"${concern}"라는 고민에, 세 장의 카드는 이렇게 답해요. 지금의 '${emotion}'한 감정은 끝이 아니라 지나가는 길목이에요. 현재의 ${c.card.ko} 카드가 나온 건, 당신이 이미 답의 실마리를 쥐고 있다는 뜻이에요. 조급해하지 않아도 괜찮아요, 흐름은 당신 편이에요.`;
+  const finalLine=`오늘 이 카드들이, 당신의 하루에 작은 등불이 되길 바라요. 🌟`;
+  return { blocks, final, finalLine, byAI:false };
+}
+
+/* ══ 9:16 포토카드 저장 ══ */
+function savePhotocard(){
+  clickSound();
+  const W=1080,H=1920, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const x=cv.getContext('2d');
+  // 배경
+  const g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,'#2a1256'); g.addColorStop(0.5,'#160c32'); g.addColorStop(1,'#08040f');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  // 별
+  x.fillStyle='#ffffff';
+  for(let i=0;i<120;i++){ x.globalAlpha=Math.random()*0.7+0.15; const r=Math.random()*2.2+0.4; x.beginPath(); x.arc(Math.random()*W,Math.random()*H,r,0,7); x.fill(); }
+  x.globalAlpha=1;
+  // 테두리
+  x.strokeStyle='rgba(245,215,142,0.4)'; x.lineWidth=4; roundRect(x,40,40,W-80,H-80,36); x.stroke();
+  // 헤더
+  x.textAlign='center'; x.fillStyle='#c9a96e'; x.font='bold 34px Malgun Gothic';
+  x.fillText(CONFIG.EVENT_NAME, W/2, 150);
+  x.fillStyle='#f5d78e'; x.font='900 68px Malgun Gothic';
+  x.fillText('AI 타로 리딩', W/2, 240);
+  // 카드 3장
+  const cw=280,ch=400,gap=30, totalW=cw*3+gap*2, sx=(W-totalW)/2, cy=340;
+  chosen.forEach((c,i)=>{
+    const cx=sx+i*(cw+gap);
+    const cg=x.createLinearGradient(cx,cy,cx,cy+ch);
+    if(c.rev){ cg.addColorStop(0,'#4b1b28'); cg.addColorStop(1,'#812e3c'); } else { cg.addColorStop(0,'#1e1b4b'); cg.addColorStop(1,'#312e81'); }
+    x.fillStyle=cg; roundRect(x,cx,cy,cw,ch,20); x.fill();
+    x.strokeStyle='#f5d78e'; x.lineWidth=3; roundRect(x,cx,cy,cw,ch,20); x.stroke();
+    x.fillStyle='#a5b4fc'; x.font='28px Malgun Gothic'; x.fillText(POS[i], cx+cw/2, cy+56);
+    x.font='120px serif'; x.fillText(c.card.s, cx+cw/2, cy+230);
+    x.fillStyle='#f5d78e'; x.font='bold 30px Malgun Gothic'; x.fillText(c.card.ko, cx+cw/2, cy+310);
+    x.fillStyle=c.rev?'#ff9fb0':'#9ec3ff'; x.font='24px Malgun Gothic'; x.fillText(c.rev?'역방향':'정방향', cx+cw/2, cy+360);
+  });
+  // 핵심 조언
+  x.fillStyle='rgba(255,255,255,0.06)'; roundRect(x,90,cy+ch+60,W-180,300,24); x.fill();
+  x.strokeStyle='rgba(124,58,237,0.5)'; x.lineWidth=2; roundRect(x,90,cy+ch+60,W-180,300,24); x.stroke();
+  x.fillStyle='#c9a96e'; x.font='28px Malgun Gothic'; x.fillText('✦ 오늘의 한마디 ✦', W/2, cy+ch+130);
+  x.fillStyle='#f0e6ff'; x.font='34px Malgun Gothic';
+  wrapText(x, lastAdvice||'당신의 하루를 응원해요.', W/2, cy+ch+200, W-260, 48);
+  // 행운
+  if(lastLucky){
+    const ly=cy+ch+430; x.fillStyle='#7dd3e8'; x.font='26px Malgun Gothic';
+    x.fillText(`🍀 행운의 색 ${lastLucky.color.name}  ·  숫자 ${lastLucky.number}  ·  방향 ${lastLucky.direction}`, W/2, ly);
+  }
+  // 로고 or 푸터
+  const finish=()=>{
+    x.fillStyle='#8a7bb0'; x.font='24px Malgun Gothic';
+    x.fillText('AI 타로 상담소  ·  '+CONFIG.EVENT_NAME, W/2, H-90);
+    cv.toBlob(b=>{
+      const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='내타로결과.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      showToast('📸 결과 이미지가 저장되었어요! 인스타 스토리에 공유해보세요.');
+    },'image/png');
+  };
+  if(CONFIG.LOGO_URL){
+    const img=new Image(); img.onload=()=>{ const lw=200, lh=img.height*(lw/img.width); x.drawImage(img,(W-lw)/2,H-70-lh-40,lw,lh); finish(); }; img.onerror=finish; img.src=CONFIG.LOGO_URL;
+  } else finish();
+}
+function roundRect(x,px,py,w,h,r){ x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); }
+function wrapText(x,text,cx,cy,maxW,lh){
+  const words=text.split(''); let line='', yy=cy;
+  for(let i=0;i<words.length;i++){ const test=line+words[i]; if(x.measureText(test).width>maxW && line){ x.fillText(line,cx,yy); line=words[i]; yy+=lh; } else line=test; }
+  x.fillText(line,cx,yy);
+}
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
+
+/* ══ 배경 애니메이션 (별빛 낙하) ══ */
+function initBg(){
+  const cv=document.getElementById('bgCanvas'), x=cv.getContext('2d');
+  let W,H,stars=[],falls=[];
+  function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+  resize(); addEventListener('resize',resize);
+  for(let i=0;i<140;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+0.3,tw:Math.random()*6.28,sp:Math.random()*0.03+0.01});
+  for(let i=0;i<26;i++) falls.push(newFall());
+  function newFall(){ return {x:Math.random()*W,y:Math.random()*-H,len:Math.random()*60+30,sp:Math.random()*3+2,a:Math.random()*0.5+0.3}; }
+  function loop(){
+    x.clearRect(0,0,W,H);
+    stars.forEach(s=>{ s.tw+=s.sp; const a=(Math.sin(s.tw)*0.4+0.5); x.globalAlpha=a*0.8; x.fillStyle='#fff'; x.beginPath(); x.arc(s.x,s.y,s.r,0,7); x.fill(); });
+    falls.forEach(f=>{ x.globalAlpha=f.a; const grad=x.createLinearGradient(f.x,f.y,f.x-f.len*0.5,f.y+f.len); grad.addColorStop(0,'rgba(245,215,142,0.9)'); grad.addColorStop(1,'rgba(245,215,142,0)');
+      x.strokeStyle=grad; x.lineWidth=2; x.beginPath(); x.moveTo(f.x,f.y); x.lineTo(f.x-f.len*0.5,f.y+f.len); x.stroke();
+      f.x-=f.sp*0.5; f.y+=f.sp; if(f.y>H){ Object.assign(f,newFall()); } });
+    x.globalAlpha=1; requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+/* ── 초기화 ── */
+(function init(){
+  if(CONFIG.LOGO_URL) document.getElementById('logoSlot').innerHTML='<img src="'+CONFIG.LOGO_URL+'" alt="logo">';
+  document.getElementById('eventTag').textContent=CONFIG.EVENT_NAME;
+  const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
+  document.getElementById('demoNote').textContent=useAI?'AI 실시간':'데모 모드';
+  if(CONFIG.BGM_URL){ bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=true; bgmEl.volume=0.35;
+    document.body.addEventListener('click',()=>{ if(soundOn&&bgmEl.paused) bgmEl.play().catch(()=>{}); },{once:true}); }
+  buildEmotions(); initBg();
+})();
+</script>
+</body>
+</html>
