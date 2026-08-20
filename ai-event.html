@@ -32,7 +32,7 @@
   .screen {
     position:absolute; inset:0; z-index:2;
     display:none; flex-direction:column; align-items:center; justify-content:center;
-    padding:40px 24px; text-align:center;
+    padding:40px 24px 66px; text-align:center;
   }
   .screen.active { display:flex; animation:fade .5s ease; }
   @keyframes fade { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)} }
@@ -68,6 +68,20 @@
   .emo .emo-ico { display:block; font-size:1.9rem; margin-bottom:8px; }
   .emo:hover { border-color:#c9a96e; background:rgba(201,169,110,.12); transform:translateY(-3px); }
   .emo:active { transform:scale(.96); }
+
+  /* 별자리 선택 */
+  .zodiac-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-width:600px; width:100%; margin-bottom:26px; }
+  .zod { padding:16px 8px; border-radius:14px; cursor:pointer; font-size:.9rem; font-weight:bold;
+    background:rgba(255,255,255,.05); border:1.5px solid rgba(96,165,250,.3); color:#e8dcff; transition:all .16s; }
+  .zod .zod-ico { display:block; font-size:1.7rem; margin-bottom:5px; color:#7dd3fc; }
+  .zod .zod-date { display:block; font-size:.62rem; color:#8fa8c8; margin-top:3px; font-weight:normal; }
+  .zod:hover { border-color:#7dd3fc; background:rgba(96,165,250,.14); transform:translateY(-3px); }
+  .zod:active { transform:scale(.96); }
+  @media (max-width:520px){ .zodiac-grid{ grid-template-columns:repeat(3,1fr); } }
+
+  /* 카드 뒷면 로고 */
+  .pcard .cardlogo { font-family:'Arial Black','Malgun Gothic',sans-serif; font-weight:900; font-size:.82rem; letter-spacing:.5px; line-height:1; }
+  .pcard .cardlogo-img { max-width:60px; max-height:60px; }
 
   /* 로딩 */
   .analyze-orb { width:150px; height:150px; margin-bottom:30px; position:relative; display:flex; align-items:center; justify-content:center; }
@@ -105,7 +119,7 @@
   @keyframes glowpick { 0%{box-shadow:0 0 0 rgba(245,215,142,0)} 40%{box-shadow:0 0 40px 12px rgba(245,215,142,.8)} 100%{box-shadow:0 0 0 rgba(245,215,142,0)} }
 
   /* 결과 */
-  #screen-result { justify-content:flex-start; overflow-y:auto; padding-top:34px; padding-bottom:44px; }
+  #screen-result { justify-content:flex-start; overflow-y:auto; padding-top:34px; padding-bottom:96px; }
   .result-wrap { width:100%; max-width:640px; }
   .rtitle { font-size:1.5rem; font-weight:bold; margin-bottom:8px; }
   .concern-echo { background:rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.4); border-radius:12px; padding:12px 18px; font-size:.9rem; color:#d8b4fe; margin-bottom:8px; }
@@ -158,6 +172,18 @@
   .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(20,20,40,.95); border:1px solid rgba(201,169,110,.4);
     color:#f0e6ff; padding:12px 24px; border-radius:12px; z-index:30; opacity:0; transition:opacity .3s, transform .3s; font-size:.9rem; }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* 하단 흐르는 티커 (로고 + 행사명) */
+  .ticker { position:fixed; left:0; right:0; bottom:0; height:46px; z-index:15; overflow:hidden;
+    background:linear-gradient(0deg, rgba(4,7,16,.9), rgba(4,7,16,.35)); border-top:1px solid rgba(201,169,110,.22);
+    display:flex; align-items:center; pointer-events:none; }
+  .ticker-track { display:flex; align-items:center; white-space:nowrap; animation:tickerMove 30s linear infinite; }
+  @keyframes tickerMove { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  .ticker-item { display:inline-flex; align-items:center; gap:12px; padding:0 6px; }
+  .ticker-item .tk-logo { font-family:'Arial Black','Malgun Gothic',sans-serif; font-weight:900; font-size:.92rem; letter-spacing:.5px; }
+  .ticker-item .tk-logo-img { height:26px; vertical-align:middle; }
+  .ticker-item .tk-name { font-size:.76rem; color:#c3d3ee; letter-spacing:1px; }
+  .tk-dot { color:#c9a96e; opacity:.6; padding:0 26px; font-size:.7rem; }
 </style>
 </head>
 <body>
@@ -168,6 +194,7 @@
 <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
 <div class="demo-note" id="demoNote">데모 모드</div>
 <div class="toast" id="toast"></div>
+<div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
 
 <!-- 시작 -->
 <section class="screen active" id="screen-start">
@@ -202,6 +229,13 @@
   <h1 style="font-size:1.7rem; margin-bottom:8px;">지금 마음에 가장 가까운 감정은?</h1>
   <p class="sub" style="margin-bottom:26px;">하나를 선택하시면 분석에 반영됩니다.</p>
   <div class="emo-grid" id="emoGrid"></div>
+</section>
+
+<!-- 별자리 선택 -->
+<section class="screen" id="screen-zodiac">
+  <h1 style="font-size:1.7rem; margin-bottom:8px;">당신의 별자리는 무엇인가요?</h1>
+  <p class="sub" style="margin-bottom:24px;">별자리를 선택하면 당신만의 리딩에 반영됩니다.</p>
+  <div class="zodiac-grid" id="zodiacGrid"></div>
 </section>
 
 <!-- 분석 로딩 -->
@@ -268,6 +302,16 @@ const EMOTIONS = [
   {ico:'💗',label:'설렘'},{ico:'🌫️',label:'막막함'},{ico:'🤔',label:'궁금함'},
 ];
 
+/* ── 별자리 선택지 ── */
+const ZODIACS = [
+  {ico:'♈',label:'양자리',date:'3.21~4.19'},{ico:'♉',label:'황소자리',date:'4.20~5.20'},
+  {ico:'♊',label:'쌍둥이자리',date:'5.21~6.21'},{ico:'♋',label:'게자리',date:'6.22~7.22'},
+  {ico:'♌',label:'사자자리',date:'7.23~8.22'},{ico:'♍',label:'처녀자리',date:'8.23~9.22'},
+  {ico:'♎',label:'천칭자리',date:'9.23~10.22'},{ico:'♏',label:'전갈자리',date:'10.23~11.22'},
+  {ico:'♐',label:'사수자리',date:'11.23~12.24'},{ico:'♑',label:'염소자리',date:'12.25~1.19'},
+  {ico:'♒',label:'물병자리',date:'1.20~2.18'},{ico:'♓',label:'물고기자리',date:'2.19~3.20'},
+];
+
 /* ── 타로 카드 22장 ── */
 const CARDS = [
   {n:0,ko:"바보",en:"The Fool",s:"🃏",up:"새로운 시작과 무한한 가능성",dn:"준비 없는 충동과 경솔함",ua:"두려움을 내려놓고 한 발 내딛으세요.",da:"흥분된 결정은 하룻밤 뒤 다시 보세요."},
@@ -298,12 +342,12 @@ const POS=["과거","현재","미래"];
 const LUCKY={
   colors:[{name:"골드",hex:"#f5d78e"},{name:"라벤더",hex:"#c4b5fd"},{name:"에메랄드",hex:"#6ee7b7"},{name:"코랄",hex:"#fca5a5"},{name:"스카이블루",hex:"#7dd3fc"},{name:"로즈핑크",hex:"#f9a8d4"},{name:"딥퍼플",hex:"#a855f7"},{name:"민트",hex:"#5eead4"},{name:"선셋오렌지",hex:"#fdba74"},{name:"터콰이즈",hex:"#2dd4bf"}],
   directions:["동쪽","서쪽","남쪽","북쪽","남동쪽","북동쪽","남서쪽","북서쪽"],
-  items:["작은 노트","따뜻한 차 한 잔","향초","손편지","꽃 한 송이","좋아하는 음악","산책","작은 화분","일기장","향수"],
-  messages:["오늘의 작은 선택이 내일의 큰 길을 만들어요.","서두르지 않아도 괜찮아요. 당신은 제 속도로 잘 가고 있어요.","마음이 향하는 곳에 답이 있어요.","오늘 하루, 스스로에게 조금 더 다정해지세요.","작은 용기 하나가 하루를 바꿀 수 있어요.","당신이 바라는 좋은 일이 조용히 다가오고 있어요.","완벽하지 않아도 충분히 빛나고 있어요.","잠시 멈춰 숨을 고르는 것도 앞으로 나아가는 거예요."],
+  items:["작은 노트","따뜻한 차 한 잔","향초","손편지","꽃 한 송이","좋아하는 음악","산책","작은 화분","일기장","향수","반지","책 한 권","별 모양 스티커","따뜻한 담요","커피 한 잔","작은 거울"],
+  messages:["오늘의 작은 선택이 내일의 큰 길을 만들어요.","서두르지 않아도 괜찮아요. 당신은 제 속도로 잘 가고 있어요.","마음이 향하는 곳에 답이 있어요.","오늘 하루, 스스로에게 조금 더 다정해지세요.","작은 용기 하나가 하루를 바꿀 수 있어요.","당신이 바라는 좋은 일이 조용히 다가오고 있어요.","완벽하지 않아도 충분히 빛나고 있어요.","잠시 멈춰 숨을 고르는 것도 앞으로 나아가는 거예요.","오늘 마주친 우연이 뜻밖의 선물이 될 거예요.","당신의 진심은 언젠가 반드시 닿아요.","가장 어두운 밤이 지나면 새벽이 와요.","오늘은 나를 위한 작은 사치를 부려도 좋은 날이에요.","놓아주는 것도 사랑이에요.","당신은 이미 충분히 잘하고 있어요.","오늘 흘린 땀은 내일의 빛이 돼요.","기대해도 좋아요, 좋은 흐름이 시작됐어요."],
 };
 
 /* ── 상태 ── */
-let concern="", emotion="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="";
+let concern="", emotion="", zodiac="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="", lastBlocks=[];
 let soundOn=true, audioCtx=null, bgmEl=null;
 
 /* ── 화면 전환 ── */
@@ -345,7 +389,16 @@ function buildEmotions(){
   EMOTIONS.forEach(e=>{
     const d=document.createElement('div'); d.className='emo';
     d.innerHTML=`<span class="emo-ico">${e.ico}</span>${e.label}`;
-    d.onclick=()=>{ emotion=e.label; clickSound(); startAnalyze(); };
+    d.onclick=()=>{ emotion=e.label; clickSound(); go('zodiac'); };
+    g.appendChild(d);
+  });
+}
+function buildZodiac(){
+  const g=document.getElementById('zodiacGrid'); g.innerHTML='';
+  ZODIACS.forEach(z=>{
+    const d=document.createElement('div'); d.className='zod';
+    d.innerHTML=`<span class="zod-ico">${z.ico}</span>${z.label}<span class="zod-date">${z.date}</span>`;
+    d.onclick=()=>{ zodiac=z.label; clickSound(); startAnalyze(); };
     g.appendChild(d);
   });
 }
@@ -373,7 +426,7 @@ function dealCards(){
     const ang=(i-(N-1)/2)*4.4; const x=(i-(N-1)/2)*44;
     d.style.transform=`translateX(${x}px) rotate(${ang}deg)`;
     d.style.zIndex=i; d.style.animationDelay=(i*0.03)+'s';
-    d.innerHTML='<span class="q">?</span>';
+    d.innerHTML=cardBack();
     d.dataset.baseTf=`translateX(${x}px) rotate(${ang}deg)`;
     d.onmouseenter=()=>{ if(!d.classList.contains('taken')) d.style.transform=d.dataset.baseTf+' translateY(-18px) scale(1.05)'; };
     d.onmouseleave=()=>{ if(!d.classList.contains('taken')) d.style.transform=d.dataset.baseTf; };
@@ -428,7 +481,7 @@ async function runReading(){
 function renderResult(data, byAI){
   document.getElementById('demoNote').textContent = byAI?'AI 실시간':'데모 모드';
   document.getElementById('concernEcho').textContent='💭 "'+concern+'"';
-  document.getElementById('emoEcho').textContent='현재 감정: '+emotion;
+  document.getElementById('emoEcho').textContent='현재 감정: '+emotion+(zodiac?'   ·   '+zodiac:'');
   const blocks=document.getElementById('blocks');
   blocks.innerHTML=chosen.map((c,i)=>`
     <div class="block ${c.rev?'rev':''}">
@@ -462,42 +515,59 @@ function renderResult(data, byAI){
 }
 
 function buildLucky(){
-  const seed=chosen.reduce((a,c)=>a+c.card.n+(c.rev?7:0),0)+Math.floor(Math.random()*99);
-  const pick=(arr,o)=>arr[(seed+o)%arr.length];
-  return { color:pick(LUCKY.colors,1), number:(seed%9)+1, direction:pick(LUCKY.directions,2), item:pick(LUCKY.items,3), message:pick(LUCKY.messages,4) };
+  const r=a=>a[Math.floor(Math.random()*a.length)];
+  return { color:r(LUCKY.colors), number:Math.floor(Math.random()*9)+1, direction:r(LUCKY.directions), item:r(LUCKY.items), message:r(LUCKY.messages) };
 }
 
 function resetAll(){
   clearTimeout(resetTimer);
-  concern="";emotion="";chosen=[];
+  concern="";emotion="";zodiac="";chosen=[];
   document.getElementById('concernInput').value='';
   go('start');
+}
+function cardBack(){
+  if(CONFIG.LOGO_URL) return '<img class="cardlogo-img" src="'+CONFIG.LOGO_URL+'" alt="">';
+  return '<div class="cardlogo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#3B4CA0">M</span><span style="color:#2E3192">F</span><span style="color:#4EA0DB">F</span></div>';
+}
+function tickerLogo(){
+  if(CONFIG.LOGO_URL) return '<img class="tk-logo-img" src="'+CONFIG.LOGO_URL+'" alt="">';
+  return '<span class="tk-logo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#3B4CA0">M</span><span style="color:#2E3192">F</span><span style="color:#4EA0DB">F</span></span>';
+}
+function buildTicker(){
+  const item='<span class="ticker-item">'+tickerLogo()+'<span class="tk-name">'+CONFIG.EVENT_NAME+'</span></span><span class="tk-dot">✦</span>';
+  let unit=''; for(let i=0;i<8;i++) unit+=item;
+  document.getElementById('tickerTrack').innerHTML=unit+unit;
 }
 
 /* ══ 실제 AI 호출 ══ */
 function buildPrompt(){
   const lines=chosen.map((c,i)=>`${POS[i]}: ${c.card.ko}(${c.card.en}) ${c.rev?'역방향':'정방향'} — ${c.rev?c.card.dn:c.card.up}`).join('\n');
-  return `당신은 따뜻하고 지혜로운 타로 상담가입니다. 아래 정보를 바탕으로 ${CONFIG.TONE} 한국어 해석을 작성하세요.
+  return `당신은 따뜻하고 지혜로운 타로 상담가입니다. 아래 정보를 바탕으로 ${CONFIG.TONE} 한국어 해석을 작성하세요. 관람객이 충분히 읽고 위로받을 수 있도록 풍성하고 구체적으로 써주세요.
 
 [고민] ${concern}
 [현재 감정] ${emotion}
+[별자리] ${zodiac||'미선택'}
 [뽑은 카드]
 ${lines}
 
-아래 JSON 형식으로만 답하세요(설명 없이):
-{"past":"과거 카드 해석 2~3문장","present":"현재 카드 해석 2~3문장","future":"미래 카드 해석 2~3문장","final":"세 카드와 고민·감정을 엮은 종합 조언 3~4문장","finalLine":"핵심을 담은 따뜻한 한 문장"}`;
+작성 규칙:
+- 고민 내용과 감정, 별자리를 실제로 반영해 개인화하세요.
+- 각 카드 해석은 3~4문장으로 풍부하게.
+- 종합 조언은 세 카드의 흐름을 엮어 5~6문장으로, 구체적 실천 조언을 포함.
+- 아래 JSON 형식으로만 답하세요(설명·군더더기 없이):
+{"past":"과거 카드 해석 3~4문장","present":"현재 카드 해석 3~4문장","future":"미래 카드 해석 3~4문장","final":"종합 조언 5~6문장","finalLine":"핵심을 담은 따뜻한 한 문장"}`;
 }
 async function callAI(){
   const prompt=buildPrompt(); let txt;
   if(CONFIG.AI_PROVIDER==='openai'){
     const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+CONFIG.API_KEY},
-      body:JSON.stringify({model:CONFIG.OPENAI_MODEL,max_tokens:900,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:CONFIG.OPENAI_MODEL,max_tokens:1300,messages:[{role:'user',content:prompt}]})});
     const d=await r.json(); txt=d.choices?.[0]?.message?.content;
   } else {
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':CONFIG.API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:CONFIG.CLAUDE_MODEL,max_tokens:900,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:CONFIG.CLAUDE_MODEL,max_tokens:1300,messages:[{role:'user',content:prompt}]})});
     const d=await r.json(); txt=d.content?.[0]?.text;
   }
   if(!txt) return null;
@@ -510,69 +580,105 @@ async function callAI(){
 /* ══ 데모용 로컬 해석 ══ */
 function localReading(){
   const [p,c,f]=chosen; const m=x=>x.rev?x.card.dn:x.card.up; const a=x=>x.rev?x.card.da:x.card.ua;
+  const zsuffix=zodiac?` ${zodiac}인 당신에게는 특히 이 흐름이 의미 있게 다가올 거예요.`:'';
   const blocks=[
-    `과거의 '${p.card.ko}' 카드는 ${m(p)}의 기운을 보여줘요. 지금 상황의 뿌리가 여기에 있어요. ${a(p)}`,
-    `현재의 '${c.card.ko}' 카드는 ${m(c)}를 말하고 있어요. 지금 당신의 '${emotion}'한 마음과 깊이 맞닿아 있어요. ${a(c)}`,
-    `미래의 '${f.card.ko}' 카드는 ${m(f)}로 향하고 있어요. 흐름은 분명히 움직이고 있어요. ${a(f)}`,
+    `과거의 자리에 놓인 '${p.card.ko}' 카드는 ${m(p)}의 기운을 담고 있어요. 지금 당신이 겪는 상황의 뿌리가 바로 여기에 있어요. 그동안 쌓아온 경험과 선택들이 지금의 당신을 만들어왔다는 걸 카드가 조용히 일러줍니다. ${a(p)}`,
+    `현재의 자리에서 '${c.card.ko}' 카드는 ${m(c)}를 이야기하고 있어요. 지금 당신이 느끼는 '${emotion}'한 마음과 이 카드는 깊이 맞닿아 있어요. 이 감정은 약함이 아니라, 당신이 진심으로 이 문제를 마주하고 있다는 증거예요. ${a(c)}`,
+    `미래의 자리에서 '${f.card.ko}' 카드는 ${m(f)}를 향해 흐르고 있어요. 아직 오지 않은 시간이지만, 카드는 그 방향이 분명히 움직이고 있음을 보여줘요. 당신의 오늘의 선택이 이 흐름을 더 밝게 만들 수 있어요. ${a(f)}`,
   ];
-  const final=`"${concern}"라는 고민에, 세 장의 카드는 이렇게 답해요. 지금의 '${emotion}'한 감정은 끝이 아니라 지나가는 길목이에요. 현재의 ${c.card.ko} 카드가 나온 건, 당신이 이미 답의 실마리를 쥐고 있다는 뜻이에요. 조급해하지 않아도 괜찮아요, 흐름은 당신 편이에요.`;
+  const final=`"${concern}"라는 당신의 고민에, 세 장의 카드는 이렇게 답해요. 과거의 ${p.card.ko}에서 시작된 흐름이 현재의 ${c.card.ko}를 지나 미래의 ${f.card.ko}로 이어지고 있어요. 지금의 '${emotion}'한 감정은 끝이 아니라 반드시 지나가는 길목이에요. 현재 자리에 ${c.card.ko} 카드가 나온 건, 당신이 이미 답의 실마리를 손에 쥐고 있다는 뜻이기도 해요. 조급해하지 말고, 오늘 할 수 있는 작은 한 걸음부터 시작해보세요.${zsuffix} 흐름은 분명히 당신 편이에요.`;
   const finalLine=`오늘 이 카드들이, 당신의 하루에 작은 등불이 되길 바라요. 🌟`;
   return { blocks, final, finalLine, byAI:false };
 }
 
 /* ══ 9:16 포토카드 저장 ══ */
+function wrapCount(x,text,maxW){
+  const chars=[...String(text)]; let line='',n=1;
+  for(let i=0;i<chars.length;i++){ const t=line+chars[i]; if(x.measureText(t).width>maxW && line){ n++; line=chars[i]; } else line=t; }
+  return n;
+}
+function photoLayout(x, draw){
+  const W=1080, bx=80, bw=W-160, pad=40, innerW=bw-pad*2;
+  x.textAlign='center'; let y=40;
+  y+=90; if(draw){ x.fillStyle='#c9a96e'; x.font='bold 32px Malgun Gothic'; x.fillText(CONFIG.EVENT_NAME,W/2,y); }
+  y+=72; if(draw){ x.fillStyle='#f5d78e'; x.font='900 60px Malgun Gothic'; x.fillText('AI 타로 리딩',W/2,y); }
+  y+=36;
+  const cw=270,ch=350,gap=28,totalW=cw*3+gap*2,sx=(W-totalW)/2,cardTop=y;
+  if(draw){ chosen.forEach((c,i)=>{
+    const cx=sx+i*(cw+gap);
+    const cg=x.createLinearGradient(cx,cardTop,cx,cardTop+ch);
+    if(c.rev){ cg.addColorStop(0,'#4b1b28'); cg.addColorStop(1,'#812e3c'); } else { cg.addColorStop(0,'#1e1b4b'); cg.addColorStop(1,'#312e81'); }
+    x.fillStyle=cg; roundRect(x,cx,cardTop,cw,ch,20); x.fill();
+    x.strokeStyle='#f5d78e'; x.lineWidth=3; roundRect(x,cx,cardTop,cw,ch,20); x.stroke();
+    x.fillStyle='#a5b4fc'; x.font='26px Malgun Gothic'; x.fillText(POS[i],cx+cw/2,cardTop+50);
+    x.font='108px serif'; x.fillText(c.card.s,cx+cw/2,cardTop+195);
+    x.fillStyle='#f5d78e'; x.font='bold 28px Malgun Gothic'; x.fillText(c.card.ko,cx+cw/2,cardTop+270);
+    x.fillStyle=c.rev?'#ff9fb0':'#9ec3ff'; x.font='22px Malgun Gothic'; x.fillText(c.rev?'역방향':'정방향',cx+cw/2,cardTop+312);
+  }); }
+  y+=ch+46;
+  // 3장 해석 블록
+  chosen.forEach((c,i)=>{
+    x.font='28px Malgun Gothic';
+    const lines=wrapCount(x, lastBlocks[i]||'', innerW);
+    const boxTop=y, boxH=58 + lines*42 + 34;
+    if(draw){
+      x.fillStyle=c.rev?'rgba(129,46,60,0.20)':'rgba(49,46,129,0.24)'; roundRect(x,bx,boxTop,bw,boxH,18); x.fill();
+      x.strokeStyle='rgba(201,169,110,0.35)'; x.lineWidth=2; roundRect(x,bx,boxTop,bw,boxH,18); x.stroke();
+      x.textAlign='left'; x.fillStyle='#f5d78e'; x.font='bold 26px Malgun Gothic';
+      x.fillText(`${c.card.s} [${POS[i]}] ${c.card.ko} · ${c.rev?'역방향':'정방향'}`, bx+pad, boxTop+44);
+      x.fillStyle='#e8dcff'; x.font='28px Malgun Gothic';
+      wrapText(x, lastBlocks[i]||'', bx+pad, boxTop+88, innerW, 42); x.textAlign='center';
+    }
+    y+=boxH+16;
+  });
+  // 종합 리딩
+  x.font='30px Malgun Gothic';
+  const fLines=wrapCount(x, lastFinal||'', innerW);
+  const fTop=y, fH=70 + fLines*46 + 40;
+  if(draw){
+    x.fillStyle='rgba(124,58,237,0.16)'; roundRect(x,bx,fTop,bw,fH,22); x.fill();
+    x.strokeStyle='rgba(124,58,237,0.5)'; x.lineWidth=2; roundRect(x,bx,fTop,bw,fH,22); x.stroke();
+    x.fillStyle='#c9a96e'; x.font='bold 30px Malgun Gothic'; x.fillText('✦ 종합 리딩 ✦',W/2,fTop+52);
+    x.fillStyle='#f0e6ff'; x.font='30px Malgun Gothic'; x.textAlign='left';
+    wrapText(x, lastFinal||'', bx+pad, fTop+104, innerW, 46); x.textAlign='center';
+  }
+  y+=fH+16;
+  // 오늘의 한마디
+  x.font='30px Malgun Gothic';
+  const aLines=wrapCount(x, lastLine||'', bw-90);
+  const aTop=y, aH=56 + aLines*42 + 34;
+  if(draw){
+    x.fillStyle='rgba(6,182,212,0.10)'; roundRect(x,bx,aTop,bw,aH,22); x.fill();
+    x.strokeStyle='rgba(6,182,212,0.4)'; x.lineWidth=2; roundRect(x,bx,aTop,bw,aH,22); x.stroke();
+    x.fillStyle='#7dd3e8'; x.font='24px Malgun Gothic'; x.fillText('✦ 오늘의 한마디 ✦',W/2,aTop+46);
+    x.fillStyle='#dbeafe'; x.font='30px Malgun Gothic';
+    wrapText(x, lastLine||'', W/2, aTop+90, bw-90, 42, true);
+  }
+  y+=aH+30;
+  if(draw && lastLucky){ x.fillStyle='#7dd3e8'; x.font='26px Malgun Gothic';
+    x.fillText(`🍀  행운의 색 ${lastLucky.color.name}   ·   숫자 ${lastLucky.number}   ·   방향 ${lastLucky.direction}`,W/2,y+10); }
+  y+=60;
+  y+=70; // 푸터 공간
+  return y;
+}
 function savePhotocard(){
   clickSound();
-  const W=1080,H=1920, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const W=1080;
+  const meas=document.createElement('canvas').getContext('2d');
+  const contentH=photoLayout(meas,false);
+  const H=Math.max(1920, Math.round(contentH+20));
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
   const x=cv.getContext('2d');
-  // 배경
   const g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,'#241a52'); g.addColorStop(0.5,'#150f36'); g.addColorStop(1,'#07040f');
   x.fillStyle=g; x.fillRect(0,0,W,H);
   x.fillStyle='#ffffff';
-  for(let i=0;i<130;i++){ x.globalAlpha=Math.random()*0.6+0.12; const r=Math.random()*2.2+0.4; x.beginPath(); x.arc(Math.random()*W,Math.random()*H,r,0,7); x.fill(); }
+  for(let i=0;i<Math.round(H/13);i++){ x.globalAlpha=Math.random()*0.6+0.12; const r=Math.random()*2.2+0.4; x.beginPath(); x.arc(Math.random()*W,Math.random()*H,r,0,7); x.fill(); }
   x.globalAlpha=1;
   x.strokeStyle='rgba(245,215,142,0.4)'; x.lineWidth=4; roundRect(x,40,40,W-80,H-80,36); x.stroke();
-  x.textAlign='center';
-  // 헤더
-  x.fillStyle='#c9a96e'; x.font='bold 32px Malgun Gothic'; x.fillText(CONFIG.EVENT_NAME, W/2, 130);
-  x.fillStyle='#f5d78e'; x.font='900 62px Malgun Gothic'; x.fillText('AI 타로 리딩', W/2, 210);
-  // 카드 3장
-  const cw=270,ch=350,gap=28, totalW=cw*3+gap*2, sx=(W-totalW)/2, cy=270;
-  chosen.forEach((c,i)=>{
-    const cx=sx+i*(cw+gap);
-    const cg=x.createLinearGradient(cx,cy,cx,cy+ch);
-    if(c.rev){ cg.addColorStop(0,'#4b1b28'); cg.addColorStop(1,'#812e3c'); } else { cg.addColorStop(0,'#1e1b4b'); cg.addColorStop(1,'#312e81'); }
-    x.fillStyle=cg; roundRect(x,cx,cy,cw,ch,20); x.fill();
-    x.strokeStyle='#f5d78e'; x.lineWidth=3; roundRect(x,cx,cy,cw,ch,20); x.stroke();
-    x.fillStyle='#a5b4fc'; x.font='26px Malgun Gothic'; x.fillText(POS[i], cx+cw/2, cy+50);
-    x.font='108px serif'; x.fillText(c.card.s, cx+cw/2, cy+195);
-    x.fillStyle='#f5d78e'; x.font='bold 28px Malgun Gothic'; x.fillText(c.card.ko, cx+cw/2, cy+270);
-    x.fillStyle=c.rev?'#ff9fb0':'#9ec3ff'; x.font='22px Malgun Gothic'; x.fillText(c.rev?'역방향':'정방향', cx+cw/2, cy+312);
-  });
-  // 종합 리딩 (본문)
-  let by=cy+ch+50, bx=80, bw=W-160, bh=560;
-  x.fillStyle='rgba(255,255,255,0.05)'; roundRect(x,bx,by,bw,bh,24); x.fill();
-  x.strokeStyle='rgba(124,58,237,0.5)'; x.lineWidth=2; roundRect(x,bx,by,bw,bh,24); x.stroke();
-  x.fillStyle='#c9a96e'; x.font='bold 30px Malgun Gothic'; x.fillText('✦ 종합 리딩 ✦', W/2, by+64);
-  x.fillStyle='#e8dcff'; x.font='30px Malgun Gothic'; x.textAlign='left';
-  wrapText(x, lastFinal||'당신의 하루를 응원해요.', bx+44, by+120, bw-88, 46);
-  x.textAlign='center';
-  // 오늘의 한마디
-  let ay=by+bh+40, ah=180;
-  x.fillStyle='rgba(6,182,212,0.10)'; roundRect(x,bx,ay,bw,ah,24); x.fill();
-  x.strokeStyle='rgba(6,182,212,0.4)'; x.lineWidth=2; roundRect(x,bx,ay,bw,ah,24); x.stroke();
-  x.fillStyle='#7dd3e8'; x.font='24px Malgun Gothic'; x.fillText('✦ 오늘의 한마디 ✦', W/2, ay+50);
-  x.fillStyle='#dbeafe'; x.font='30px Malgun Gothic';
-  wrapText(x, lastLine||'당신의 하루를 응원해요.', W/2, ay+98, bw-90, 42, true);
-  // 행운
-  if(lastLucky){
-    const ly=ay+ah+70; x.fillStyle='#7dd3e8'; x.font='27px Malgun Gothic';
-    x.fillText(`🍀  행운의 색 ${lastLucky.color.name}   ·   숫자 ${lastLucky.number}   ·   방향 ${lastLucky.direction}`, W/2, ly);
-  }
-  // 로고 + 푸터
+  photoLayout(x,true);
   const finish=()=>{
-    x.fillStyle='#8a7bb0'; x.font='23px Malgun Gothic';
-    x.fillText('AI 타로 상담소  ·  '+CONFIG.EVENT_NAME, W/2, H-80);
+    x.textAlign='center'; x.fillStyle='#8a7bb0'; x.font='23px Malgun Gothic';
+    x.fillText('AI 타로 상담소  ·  '+CONFIG.EVENT_NAME, W/2, H-58);
     cv.toBlob(b=>{
       const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='내타로결과.png';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -580,7 +686,7 @@ function savePhotocard(){
     },'image/png');
   };
   if(CONFIG.LOGO_URL){
-    const img=new Image(); img.onload=()=>{ const lw=170, lh=img.height*(lw/img.width); x.drawImage(img,(W-lw)/2,H-70-lh-36,lw,lh); finish(); }; img.onerror=finish; img.src=CONFIG.LOGO_URL;
+    const img=new Image(); img.onload=()=>{ const lw=150,lh=img.height*(lw/img.width); x.drawImage(img,(W-lw)/2,H-52-lh-28,lw,lh); finish(); }; img.onerror=finish; img.src=CONFIG.LOGO_URL;
   } else finish();
 }
 function roundRect(x,px,py,w,h,r){ x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); }
@@ -677,7 +783,7 @@ function initBg(){
   document.getElementById('demoNote').textContent=useAI?'AI 실시간':'데모 모드';
   if(CONFIG.BGM_URL){ bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=true; bgmEl.volume=0.35;
     document.body.addEventListener('click',()=>{ if(soundOn&&bgmEl.paused) bgmEl.play().catch(()=>{}); },{once:true}); }
-  buildEmotions(); initBg();
+  buildEmotions(); buildZodiac(); buildTicker(); initBg();
 })();
 </script>
 </body>
