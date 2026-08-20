@@ -204,7 +204,7 @@
     <div class="brand-logo" id="brandLogo">
       <svg class="gamff-svg" viewBox="0 0 380 100" xmlns="http://www.w3.org/2000/svg">
         <text x="180" y="80" text-anchor="middle" font-family="'Arial Black','Malgun Gothic',sans-serif" font-size="90" font-weight="900" letter-spacing="1">
-          <tspan fill="#E4322B">G</tspan><tspan fill="#D6218C">A</tspan><tspan fill="#3B4CA0">M</tspan><tspan fill="#2E3192">F</tspan><tspan fill="#4EA0DB">F</tspan>
+          <tspan fill="#E4322B">G</tspan><tspan fill="#D6218C">A</tspan><tspan fill="#7A4FB5">M</tspan><tspan fill="#2E3192">F</tspan><tspan fill="#2E3192">F</tspan>
         </text>
         <circle cx="356" cy="26" r="10" fill="#22A45A"/>
         <rect x="330" y="66" width="16" height="16" fill="#8DC63F"/>
@@ -439,8 +439,8 @@ function startAnalyze(){
   const texts=["AI가 별자리 궤도를 분석 중입니다...","당신의 감정 에너지를 읽고 있어요...","운명의 카드 덱을 준비하고 있어요..."];
   let ti=0; document.getElementById('analyzeText').textContent=texts[0];
   const fill=document.getElementById('loadFill'); fill.style.width='0';
-  let p=0; const iv=setInterval(()=>{ p+=100/60; fill.style.width=Math.min(p,100)+'%'; if(p%33<2){ ti=(ti+1)%texts.length; document.getElementById('analyzeText').textContent=texts[ti]; } },100);
-  setTimeout(()=>{ clearInterval(iv); dealCards(); go('cards'); },6000);
+  let p=0; const iv=setInterval(()=>{ p+=100/95; fill.style.width=Math.min(p,100)+'%'; if(p%25<1.1){ ti=(ti+1)%texts.length; document.getElementById('analyzeText').textContent=texts[ti]; } },100);
+  setTimeout(()=>{ clearInterval(iv); dealCards(); go('cards'); },9500);
 }
 
 /* ── 카드 셔플 & 순차 선택 ── */
@@ -488,7 +488,7 @@ const READ_MSGS=[
   "당신의 고민과 카드의 기운을 연결하고 있어요...",
   "곧 당신만을 위한 이야기가 도착해요...",
 ];
-const MIN_READ_MS=6500;
+const MIN_READ_MS=9500;
 async function runReading(){
   go('reading-load');
   const fill=document.getElementById('loadFill2'); fill.style.width='0';
@@ -557,11 +557,11 @@ function resetAll(){
 }
 function cardBack(){
   if(CONFIG.LOGO_URL) return '<img class="cardlogo-img" src="'+CONFIG.LOGO_URL+'" alt="">';
-  return '<div class="cardlogo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#3B4CA0">M</span><span style="color:#2E3192">F</span><span style="color:#4EA0DB">F</span></div>';
+  return '<div class="cardlogo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#7A4FB5">M</span><span style="color:#2E3192">F</span><span style="color:#2E3192">F</span></div>';
 }
 function tickerLogo(){
   if(CONFIG.LOGO_URL) return '<img class="tk-logo-img" src="'+CONFIG.LOGO_URL+'" alt="">';
-  return '<span class="tk-logo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#3B4CA0">M</span><span style="color:#2E3192">F</span><span style="color:#4EA0DB">F</span></span>';
+  return '<span class="tk-logo"><span style="color:#E4322B">G</span><span style="color:#D6218C">A</span><span style="color:#7A4FB5">M</span><span style="color:#2E3192">F</span><span style="color:#2E3192">F</span></span>';
 }
 function buildTicker(){
   const item='<span class="ticker-item">'+tickerLogo()+'<span class="tk-name">'+CONFIG.EVENT_NAME+'</span></span><span class="tk-dot">✦</span>';
