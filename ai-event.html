@@ -153,7 +153,7 @@
   /* 사운드 토글 */
   .sound-toggle { position:fixed; top:14px; left:14px; z-index:20; width:46px; height:46px; border-radius:50%;
     background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15); color:#f5d78e; font-size:1.2rem; cursor:pointer; }
-  .demo-note { position:fixed; top:16px; right:14px; z-index:20; font-size:.66rem; color:#8a7bb0; background:rgba(0,0,0,.3); padding:5px 12px; border-radius:20px; border:1px solid rgba(255,255,255,.08); }
+  .demo-note { display:none; }
 
   .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(20,20,40,.95); border:1px solid rgba(201,169,110,.4);
     color:#f0e6ff; padding:12px 24px; border-radius:12px; z-index:30; opacity:0; transition:opacity .3s, transform .3s; font-size:.9rem; }
@@ -303,7 +303,7 @@ const LUCKY={
 };
 
 /* ── 상태 ── */
-let concern="", emotion="", chosen=[], resetTimer=null, lastLucky=null, lastAdvice="";
+let concern="", emotion="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="";
 let soundOn=true, audioCtx=null, bgmEl=null;
 
 /* ── 화면 전환 ── */
@@ -441,7 +441,7 @@ function renderResult(data, byAI){
       <div class="btext"><div class="bpos">[ ${POS[i]} ] ${c.card.ko}</div><p>${data.blocks[i]}</p></div>
     </div>`).join('');
   document.getElementById('finalAdvice').innerHTML=`<div class="fa-label">✦ 종합 조언 ✦</div><p>${data.final}</p>`;
-  lastAdvice=data.finalLine;
+  lastFinal=data.final; lastLine=data.finalLine;
 
   const lk=buildLucky(); lastLucky=lk;
   document.getElementById('lucky').innerHTML=`
@@ -526,47 +526,53 @@ function savePhotocard(){
   const W=1080,H=1920, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
   const x=cv.getContext('2d');
   // 배경
-  const g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,'#2a1256'); g.addColorStop(0.5,'#160c32'); g.addColorStop(1,'#08040f');
+  const g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,'#241a52'); g.addColorStop(0.5,'#150f36'); g.addColorStop(1,'#07040f');
   x.fillStyle=g; x.fillRect(0,0,W,H);
-  // 별
   x.fillStyle='#ffffff';
-  for(let i=0;i<120;i++){ x.globalAlpha=Math.random()*0.7+0.15; const r=Math.random()*2.2+0.4; x.beginPath(); x.arc(Math.random()*W,Math.random()*H,r,0,7); x.fill(); }
+  for(let i=0;i<130;i++){ x.globalAlpha=Math.random()*0.6+0.12; const r=Math.random()*2.2+0.4; x.beginPath(); x.arc(Math.random()*W,Math.random()*H,r,0,7); x.fill(); }
   x.globalAlpha=1;
-  // 테두리
   x.strokeStyle='rgba(245,215,142,0.4)'; x.lineWidth=4; roundRect(x,40,40,W-80,H-80,36); x.stroke();
+  x.textAlign='center';
   // 헤더
-  x.textAlign='center'; x.fillStyle='#c9a96e'; x.font='bold 34px Malgun Gothic';
-  x.fillText(CONFIG.EVENT_NAME, W/2, 150);
-  x.fillStyle='#f5d78e'; x.font='900 68px Malgun Gothic';
-  x.fillText('AI 타로 리딩', W/2, 240);
+  x.fillStyle='#c9a96e'; x.font='bold 32px Malgun Gothic'; x.fillText(CONFIG.EVENT_NAME, W/2, 130);
+  x.fillStyle='#f5d78e'; x.font='900 62px Malgun Gothic'; x.fillText('AI 타로 리딩', W/2, 210);
   // 카드 3장
-  const cw=280,ch=400,gap=30, totalW=cw*3+gap*2, sx=(W-totalW)/2, cy=340;
+  const cw=270,ch=350,gap=28, totalW=cw*3+gap*2, sx=(W-totalW)/2, cy=270;
   chosen.forEach((c,i)=>{
     const cx=sx+i*(cw+gap);
     const cg=x.createLinearGradient(cx,cy,cx,cy+ch);
     if(c.rev){ cg.addColorStop(0,'#4b1b28'); cg.addColorStop(1,'#812e3c'); } else { cg.addColorStop(0,'#1e1b4b'); cg.addColorStop(1,'#312e81'); }
     x.fillStyle=cg; roundRect(x,cx,cy,cw,ch,20); x.fill();
     x.strokeStyle='#f5d78e'; x.lineWidth=3; roundRect(x,cx,cy,cw,ch,20); x.stroke();
-    x.fillStyle='#a5b4fc'; x.font='28px Malgun Gothic'; x.fillText(POS[i], cx+cw/2, cy+56);
-    x.font='120px serif'; x.fillText(c.card.s, cx+cw/2, cy+230);
-    x.fillStyle='#f5d78e'; x.font='bold 30px Malgun Gothic'; x.fillText(c.card.ko, cx+cw/2, cy+310);
-    x.fillStyle=c.rev?'#ff9fb0':'#9ec3ff'; x.font='24px Malgun Gothic'; x.fillText(c.rev?'역방향':'정방향', cx+cw/2, cy+360);
+    x.fillStyle='#a5b4fc'; x.font='26px Malgun Gothic'; x.fillText(POS[i], cx+cw/2, cy+50);
+    x.font='108px serif'; x.fillText(c.card.s, cx+cw/2, cy+195);
+    x.fillStyle='#f5d78e'; x.font='bold 28px Malgun Gothic'; x.fillText(c.card.ko, cx+cw/2, cy+270);
+    x.fillStyle=c.rev?'#ff9fb0':'#9ec3ff'; x.font='22px Malgun Gothic'; x.fillText(c.rev?'역방향':'정방향', cx+cw/2, cy+312);
   });
-  // 핵심 조언
-  x.fillStyle='rgba(255,255,255,0.06)'; roundRect(x,90,cy+ch+60,W-180,300,24); x.fill();
-  x.strokeStyle='rgba(124,58,237,0.5)'; x.lineWidth=2; roundRect(x,90,cy+ch+60,W-180,300,24); x.stroke();
-  x.fillStyle='#c9a96e'; x.font='28px Malgun Gothic'; x.fillText('✦ 오늘의 한마디 ✦', W/2, cy+ch+130);
-  x.fillStyle='#f0e6ff'; x.font='34px Malgun Gothic';
-  wrapText(x, lastAdvice||'당신의 하루를 응원해요.', W/2, cy+ch+200, W-260, 48);
+  // 종합 리딩 (본문)
+  let by=cy+ch+50, bx=80, bw=W-160, bh=560;
+  x.fillStyle='rgba(255,255,255,0.05)'; roundRect(x,bx,by,bw,bh,24); x.fill();
+  x.strokeStyle='rgba(124,58,237,0.5)'; x.lineWidth=2; roundRect(x,bx,by,bw,bh,24); x.stroke();
+  x.fillStyle='#c9a96e'; x.font='bold 30px Malgun Gothic'; x.fillText('✦ 종합 리딩 ✦', W/2, by+64);
+  x.fillStyle='#e8dcff'; x.font='30px Malgun Gothic'; x.textAlign='left';
+  wrapText(x, lastFinal||'당신의 하루를 응원해요.', bx+44, by+120, bw-88, 46);
+  x.textAlign='center';
+  // 오늘의 한마디
+  let ay=by+bh+40, ah=180;
+  x.fillStyle='rgba(6,182,212,0.10)'; roundRect(x,bx,ay,bw,ah,24); x.fill();
+  x.strokeStyle='rgba(6,182,212,0.4)'; x.lineWidth=2; roundRect(x,bx,ay,bw,ah,24); x.stroke();
+  x.fillStyle='#7dd3e8'; x.font='24px Malgun Gothic'; x.fillText('✦ 오늘의 한마디 ✦', W/2, ay+50);
+  x.fillStyle='#dbeafe'; x.font='30px Malgun Gothic';
+  wrapText(x, lastLine||'당신의 하루를 응원해요.', W/2, ay+98, bw-90, 42, true);
   // 행운
   if(lastLucky){
-    const ly=cy+ch+430; x.fillStyle='#7dd3e8'; x.font='26px Malgun Gothic';
-    x.fillText(`🍀 행운의 색 ${lastLucky.color.name}  ·  숫자 ${lastLucky.number}  ·  방향 ${lastLucky.direction}`, W/2, ly);
+    const ly=ay+ah+70; x.fillStyle='#7dd3e8'; x.font='27px Malgun Gothic';
+    x.fillText(`🍀  행운의 색 ${lastLucky.color.name}   ·   숫자 ${lastLucky.number}   ·   방향 ${lastLucky.direction}`, W/2, ly);
   }
-  // 로고 or 푸터
+  // 로고 + 푸터
   const finish=()=>{
-    x.fillStyle='#8a7bb0'; x.font='24px Malgun Gothic';
-    x.fillText('AI 타로 상담소  ·  '+CONFIG.EVENT_NAME, W/2, H-90);
+    x.fillStyle='#8a7bb0'; x.font='23px Malgun Gothic';
+    x.fillText('AI 타로 상담소  ·  '+CONFIG.EVENT_NAME, W/2, H-80);
     cv.toBlob(b=>{
       const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='내타로결과.png';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -574,14 +580,15 @@ function savePhotocard(){
     },'image/png');
   };
   if(CONFIG.LOGO_URL){
-    const img=new Image(); img.onload=()=>{ const lw=200, lh=img.height*(lw/img.width); x.drawImage(img,(W-lw)/2,H-70-lh-40,lw,lh); finish(); }; img.onerror=finish; img.src=CONFIG.LOGO_URL;
+    const img=new Image(); img.onload=()=>{ const lw=170, lh=img.height*(lw/img.width); x.drawImage(img,(W-lw)/2,H-70-lh-36,lw,lh); finish(); }; img.onerror=finish; img.src=CONFIG.LOGO_URL;
   } else finish();
 }
 function roundRect(x,px,py,w,h,r){ x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); }
-function wrapText(x,text,cx,cy,maxW,lh){
-  const words=text.split(''); let line='', yy=cy;
-  for(let i=0;i<words.length;i++){ const test=line+words[i]; if(x.measureText(test).width>maxW && line){ x.fillText(line,cx,yy); line=words[i]; yy+=lh; } else line=test; }
-  x.fillText(line,cx,yy);
+function wrapText(x,text,cx,cy,maxW,lh,center){
+  const chars=[...String(text)]; let line='', yy=cy;
+  for(let i=0;i<chars.length;i++){ const test=line+chars[i]; if(x.measureText(test).width>maxW && line){ x.fillText(line,cx,yy); line=chars[i]; yy+=lh; } else line=test; }
+  if(line) x.fillText(line,cx,yy);
+  return yy;
 }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
 
