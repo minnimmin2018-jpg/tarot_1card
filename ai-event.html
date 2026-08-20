@@ -52,7 +52,11 @@
   .btn { border:none; cursor:pointer; font-family:inherit; padding:18px 48px; border-radius:40px; font-size:1.15rem; font-weight:bold; letter-spacing:1px;
     background:linear-gradient(135deg,#7c3aed,#c9a96e); color:#1a0533; box-shadow:0 8px 34px rgba(124,58,237,.4); transition:transform .18s; }
   .btn:active { transform:scale(.96); }
-  .btn-ghost { background:transparent; border:2px solid #c9a96e; color:#f5d78e; box-shadow:none; padding:14px 34px; font-size:1rem; }
+  .btn-ghost { background:transparent; border:2px solid #c9a96e; color:#f5d78e; box-shadow:none; padding:14px 34px; font-size:1rem; cursor:pointer; font-family:inherit; font-weight:bold; transition:transform .18s; }
+  .btn-ghost:active { transform:scale(.96); }
+  .btn-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center; }
+  textarea.shake { animation:shake .4s; border-color:#ff8fa0 !important; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
 
   textarea { width:100%; max-width:560px; height:150px; resize:none; background:rgba(255,255,255,.07); border:1.5px solid rgba(201,169,110,.4);
     border-radius:16px; color:#f0e6ff; font-size:1.15rem; font-family:inherit; padding:20px; outline:none; line-height:1.6; margin-bottom:26px; }
@@ -222,7 +226,10 @@
   <h1 style="font-size:1.8rem; margin-bottom:10px;">💭 어떤 고민이 있으신가요?</h1>
   <p class="sub" style="margin-bottom:24px;">마음속 이야기를 자유롭게 적어주세요.</p>
   <textarea id="concernInput" placeholder="예) 요즘 진로 때문에 너무 막막하고 불안해요. 지금 준비하는 길이 맞는 걸까요?"></textarea>
-  <button class="btn" onclick="submitConcern()">다음 →</button>
+  <div class="btn-row">
+    <button class="btn-ghost" onclick="clickSound();resetAll()">← 처음으로</button>
+    <button class="btn" onclick="submitConcern()">다음 →</button>
+  </div>
 </section>
 
 <!-- 감정 선택 -->
@@ -441,9 +448,16 @@ function initYouTubeBGM(){
 
 /* ── 고민 → 감정 ── */
 function submitConcern(){
+  const ta=document.getElementById('concernInput');
+  const v=ta.value.trim();
+  if(!v){
+    showToast('💭 고민을 먼저 입력해주세요!');
+    ta.classList.remove('shake'); void ta.offsetWidth; ta.classList.add('shake');
+    ta.focus();
+    return;
+  }
   clickSound();
-  const v=document.getElementById('concernInput').value.trim();
-  concern=v||"지금 제 마음이 어떤지, 어떤 방향으로 가야 할지 봐주세요.";
+  concern=v;
   go('emotion');
 }
 function buildEmotions(){
