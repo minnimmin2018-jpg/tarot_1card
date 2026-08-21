@@ -833,6 +833,12 @@ function initBg(){
       _bt=bgmEl.currentTime;
     },1500);
     document.body.addEventListener('click',()=>{ if(soundOn&&bgmEl.paused) bgmEl.play().catch(()=>{}); },{once:true});
+    // 다른 탭으로 가면(안 보이면) 음악 멈춤 → 여러 탭 소리 겹침 방지
+    document.addEventListener('visibilitychange',()=>{
+      if(!bgmEl) return;
+      if(document.hidden){ bgmEl.pause(); }
+      else if(soundOn){ bgmEl.play().catch(()=>{}); }
+    });
   } else if(CONFIG.BGM_YOUTUBE_ID){
     initYouTubeBGM();
     document.body.addEventListener('click',()=>{ userGestured=true; tryStartYT(); });
