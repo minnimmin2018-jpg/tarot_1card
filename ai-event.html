@@ -95,7 +95,7 @@
   .analyze-orb .halo { position:absolute; inset:0; border:2px solid transparent; border-top-color:#f5d78e; border-radius:50%; animation:spin 1.4s linear infinite; }
   .analyze-orb .halo2 { position:absolute; inset:14px; border:2px solid transparent; border-bottom-color:#06b6d4; border-radius:50%; animation:spin 2s linear infinite reverse; }
   @keyframes pulse { 0%,100%{transform:scale(1); opacity:.92} 50%{transform:scale(1.08); opacity:1} }
-  .load-text { font-size:1.15rem; color:#d4c5f9; letter-spacing:1px; min-height:1.6em; }
+  .load-text { font-size:1.15rem; color:#d4c5f9; letter-spacing:1px; min-height:3em; white-space:pre-line; line-height:1.6; text-align:center; padding:0 20px; }
   .load-bar { width:260px; height:5px; background:rgba(255,255,255,.1); border-radius:3px; margin-top:22px; overflow:hidden; }
   .load-fill { height:100%; width:0; background:linear-gradient(90deg,#7c3aed,#f5d78e); border-radius:3px; transition:width .3s linear; }
 
@@ -106,7 +106,8 @@
   .slots { display:flex; gap:16px; justify-content:center; margin-bottom:20px; }
   .slot { width:64px; height:96px; border-radius:10px; border:2px dashed rgba(201,169,110,.35); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:.6rem; color:#8a7bb0; gap:3px; }
   .slot .sslabel { font-size:.58rem; }
-  .slot.filled { border-style:solid; border-color:#c9a96e; background:rgba(201,169,110,.14); font-size:1.8rem; }
+  .slot.filled { border-style:solid; border-color:#c9a96e; background:rgba(201,169,110,.14); font-size:1.8rem; animation:slotFlip .5s ease; }
+  @keyframes slotFlip { 0%{transform:rotateY(90deg) scale(.7);opacity:0} 55%{transform:rotateY(-12deg) scale(1.08)} 100%{transform:rotateY(0) scale(1);opacity:1} }
   .fan { position:relative; width:100%; max-width:760px; height:220px; }
   .pcard {
     position:absolute; left:50%; top:20px; width:92px; height:146px; margin-left:-46px;
@@ -147,12 +148,12 @@
   .bo.dn { background:rgba(220,80,100,.25); color:#ff9fb0; }
   .btext { flex:1; }
   .btext .bpos { font-size:.72rem; color:#c9a96e; letter-spacing:1px; margin-bottom:6px; }
-  .btext p { font-size:.95rem; color:#e8dcff; line-height:1.8; white-space:pre-line; }
+  .btext p { font-size:1.05rem; color:#e8dcff; line-height:1.85; white-space:pre-line; }
 
   .final-advice { background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(6,182,212,.12)); border:1px solid rgba(124,58,237,.35);
     border-radius:16px; padding:20px; margin:8px 0 14px; text-align:left; }
   .final-advice .fa-label { font-size:.72rem; color:#c9a96e; letter-spacing:1px; margin-bottom:8px; }
-  .final-advice p { font-size:1rem; color:#f0e6ff; line-height:1.85; white-space:pre-line; }
+  .final-advice p { font-size:1.08rem; color:#f0e6ff; line-height:1.9; white-space:pre-line; }
 
   .lucky { background:linear-gradient(135deg,rgba(6,182,212,.12),rgba(124,58,237,.14)); border:1px solid rgba(6,182,212,.35); border-radius:16px; padding:20px; margin-bottom:20px; }
   .lucky-title { font-size:1rem; color:#7dd3e8; letter-spacing:1px; margin-bottom:14px; font-weight:bold; }
@@ -165,6 +166,7 @@
   .lucky-msg { background:rgba(255,255,255,.05); border-radius:12px; padding:14px; text-align:center; font-size:.98rem; color:#dbeafe; line-height:1.7; }
   .lucky-msg .lm-label { font-size:.7rem; color:#7dd3e8; display:block; margin-bottom:6px; letter-spacing:1px; }
 
+  .photo-hint { text-align:center; font-size:.92rem; color:#7dd3e8; background:rgba(6,182,212,.1); border:1px solid rgba(6,182,212,.3); border-radius:12px; padding:12px 16px; margin:0 0 16px; line-height:1.6; }
   .result-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
   .btn-save { background:linear-gradient(135deg,#0891b2,#06b6d4); color:#04252c; border:none; padding:15px 30px; border-radius:32px; font-size:1rem; font-weight:bold; cursor:pointer; box-shadow:0 6px 22px rgba(6,182,212,.35); }
   .btn-save:active { transform:scale(.96); }
@@ -173,6 +175,7 @@
   .sound-toggle { position:fixed; top:14px; left:14px; z-index:20; width:46px; height:46px; border-radius:50%;
     background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15); color:#f5d78e; font-size:1.2rem; cursor:pointer; }
   .demo-note { display:none; }
+  #aiStatus { position:fixed; bottom:56px; left:16px; z-index:16; width:9px; height:9px; border-radius:50%; background:#555; opacity:.45; transition:background .3s; }
 
   .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(20,20,40,.95); border:1px solid rgba(201,169,110,.4);
     color:#f0e6ff; padding:12px 24px; border-radius:12px; z-index:30; opacity:0; transition:opacity .3s, transform .3s; font-size:.9rem; }
@@ -198,6 +201,7 @@
 
 <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
 <div class="demo-note" id="demoNote">데모 모드</div>
+<div id="aiStatus" title="AI 연결 상태 (운영자용)"></div>
 <div class="toast" id="toast"></div>
 <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
 <div id="ytbgm" style="position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;"></div>
@@ -283,8 +287,10 @@
     <div id="blocks"></div>
     <div class="final-advice" id="finalAdvice"></div>
     <div class="lucky" id="lucky"></div>
+    <div class="photo-hint">📷 이 결과를 간직하고 싶다면, 휴대폰으로 화면을 촬영해 가세요!</div>
     <div class="result-btns">
       <button class="btn-save" onclick="savePhotocard()">📸 결과 이미지로 저장</button>
+      <button class="btn-ghost" onclick="redrawCards()">🔮 카드 다시 뽑기</button>
       <button class="btn-ghost" onclick="clickSound();resetAll()">🔄 처음으로</button>
     </div>
   </div>
@@ -428,8 +434,12 @@ function submitConcern(){
   if(!v){
     showToast('💭 고민을 먼저 입력해주세요!');
     ta.classList.remove('shake'); void ta.offsetWidth; ta.classList.add('shake');
-    ta.focus();
-    return;
+    ta.focus(); return;
+  }
+  if(v.length<4){
+    showToast('💭 고민을 조금만 더 자세히 적어주세요 (4글자 이상)');
+    ta.classList.remove('shake'); void ta.offsetWidth; ta.classList.add('shake');
+    ta.focus(); return;
   }
   clickSound();
   concern=v;
@@ -526,8 +536,10 @@ const MIN_READ_MS=9500;
 async function runReading(){
   go('reading-load');
   const fill=document.getElementById('loadFill2'); fill.style.width='0';
-  const rt=document.getElementById('readText'); let mi=0; rt.textContent=READ_MSGS[0];
-  const msgIv=setInterval(()=>{ mi=(mi+1)%READ_MSGS.length; rt.textContent=READ_MSGS[mi]; },1700);
+  const shortC = concern.length>22 ? concern.slice(0,22)+'…' : concern;
+  const msgs=[ `"${shortC}"\n당신의 이야기를 들여다보는 중이에요...`, ...READ_MSGS ];
+  const rt=document.getElementById('readText'); let mi=0; rt.textContent=msgs[0];
+  const msgIv=setInterval(()=>{ mi=(mi+1)%msgs.length; rt.textContent=msgs[mi]; },1900);
   let p=0; const barIv=setInterval(()=>{ p+=100/(MIN_READ_MS/100); fill.style.width=Math.min(p,97)+'%'; },100);
 
   const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
@@ -545,6 +557,7 @@ async function runReading(){
 function renderResult(data, byAI){
   const keySet=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
   document.getElementById('demoNote').textContent = byAI ? 'AI 실시간' : (keySet && lastAIError ? '데모(오류): '+lastAIError : '데모 모드');
+  const st=document.getElementById('aiStatus'); if(st){ st.style.background = byAI ? '#4ade80' : (keySet ? '#f59e0b' : '#555'); st.style.opacity = byAI ? '.85' : '.6'; st.title = byAI ? 'AI 실시간 연결됨' : (keySet ? 'AI 연결 실패 — 인터넷 확인' : '데모 모드'); }
   document.getElementById('concernEcho').textContent='💭 "'+concern+'"';
   document.getElementById('emoEcho').textContent='현재 감정: '+emotionText()+(zodiac?'   ·   '+zodiac:'');
   const blocks=document.getElementById('blocks');
@@ -584,6 +597,13 @@ function buildLucky(){
   return { color:r(LUCKY.colors), number:Math.floor(Math.random()*9)+1, direction:r(LUCKY.directions), item:r(LUCKY.items), message:r(LUCKY.messages) };
 }
 
+function redrawCards(){
+  clickSound();
+  clearTimeout(resetTimer);
+  chosen=[];
+  dealCards();
+  go('cards');
+}
 function resetAll(){
   clearTimeout(resetTimer);
   concern="";emotions=[];zodiac="";chosen=[];
