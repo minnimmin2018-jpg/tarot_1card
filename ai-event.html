@@ -822,7 +822,16 @@ function initBg(){
   const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
   document.getElementById('demoNote').textContent=useAI?'AI 실시간':'데모 모드';
   if(CONFIG.BGM_URL){
-    bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=true; bgmEl.volume=0.35;
+    bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=false; bgmEl.volume=0.35;
+    const restartBgm=()=>{ if(!soundOn) return; try{ bgmEl.currentTime=0; bgmEl.play().catch(()=>{}); }catch(e){} };
+    bgmEl.addEventListener('ended', restartBgm);
+    // 워치독: 잘린 mp3라 loop/재생시간 정보가 부정확할 수 있어, 진행이 멈추면 다시 시작
+    let _bt=-1,_bs=0;
+    setInterval(()=>{
+      if(!soundOn||!bgmEl||bgmEl.paused) { _bt=bgmEl?bgmEl.currentTime:-1; return; }
+      if(Math.abs(bgmEl.currentTime-_bt)<0.05){ _bs++; if(_bs>=2){ restartBgm(); _bs=0; } } else _bs=0;
+      _bt=bgmEl.currentTime;
+    },1500);
     document.body.addEventListener('click',()=>{ if(soundOn&&bgmEl.paused) bgmEl.play().catch(()=>{}); },{once:true});
   } else if(CONFIG.BGM_YOUTUBE_ID){
     initYouTubeBGM();
