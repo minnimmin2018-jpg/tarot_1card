@@ -670,22 +670,7 @@ function photoLayout(x, draw){
     x.fillStyle='#f5d78e'; x.font='bold 28px Malgun Gothic'; x.fillText(c.card.ko,cx+cw/2,cardTop+270);
     x.fillStyle=c.rev?'#ff9fb0':'#9ec3ff'; x.font='22px Malgun Gothic'; x.fillText(c.rev?'역방향':'정방향',cx+cw/2,cardTop+312);
   }); }
-  y+=ch+46;
-  // 3장 해석 블록
-  chosen.forEach((c,i)=>{
-    x.font='28px Malgun Gothic';
-    const lines=wrapCount(x, lastBlocks[i]||'', innerW);
-    const boxTop=y, boxH=58 + lines*42 + 34;
-    if(draw){
-      x.fillStyle=c.rev?'rgba(129,46,60,0.20)':'rgba(49,46,129,0.24)'; roundRect(x,bx,boxTop,bw,boxH,18); x.fill();
-      x.strokeStyle='rgba(201,169,110,0.35)'; x.lineWidth=2; roundRect(x,bx,boxTop,bw,boxH,18); x.stroke();
-      x.textAlign='left'; x.fillStyle='#f5d78e'; x.font='bold 26px Malgun Gothic';
-      x.fillText(`${c.card.s} [${POS[i]}] ${c.card.ko} · ${c.rev?'역방향':'정방향'}`, bx+pad, boxTop+44);
-      x.fillStyle='#e8dcff'; x.font='28px Malgun Gothic';
-      wrapText(x, lastBlocks[i]||'', bx+pad, boxTop+88, innerW, 42); x.textAlign='center';
-    }
-    y+=boxH+16;
-  });
+  y+=ch+50;
   // 종합 리딩
   x.font='30px Malgun Gothic';
   const fLines=wrapCount(x, lastFinal||'', innerW);
