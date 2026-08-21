@@ -72,6 +72,7 @@
   .emo .emo-ico { display:block; font-size:1.7rem; margin-bottom:6px; }
   .emo:hover { border-color:#c9a96e; background:rgba(201,169,110,.12); transform:translateY(-3px); }
   .emo:active { transform:scale(.96); }
+  .emo.sel { border-color:#f5d78e; background:rgba(245,215,142,.22); box-shadow:0 0 14px rgba(245,215,142,.35); color:#fff; }
 
   /* 별자리 선택 */
   .zodiac-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-width:600px; width:100%; margin-bottom:26px; }
@@ -234,9 +235,10 @@
 
 <!-- 감정 선택 -->
 <section class="screen" id="screen-emotion">
-  <h1 style="font-size:1.7rem; margin-bottom:8px;">지금 마음에 가장 가까운 감정은?</h1>
-  <p class="sub" style="margin-bottom:26px;">하나를 선택하시면 분석에 반영됩니다.</p>
+  <h1 style="font-size:1.7rem; margin-bottom:8px;">지금 마음에 가까운 감정은?</h1>
+  <p class="sub" style="margin-bottom:22px;">최대 <b style="color:#f5d78e">2개</b>까지 선택할 수 있어요.</p>
   <div class="emo-grid" id="emoGrid"></div>
+  <button class="btn" id="emoNext" onclick="submitEmotion()" style="margin-top:8px;opacity:.4;pointer-events:none;">다음 →</button>
 </section>
 
 <!-- 별자리 선택 -->
@@ -358,6 +360,7 @@ const CARDS = [
 ];
 
 const POS=["과거","현재","미래"];
+const POS_ROLE=["과거 · 원인","현재 · 감정","미래 · 해결책"];
 const LUCKY={
   colors:[{name:"골드",hex:"#f5d78e"},{name:"라벤더",hex:"#c4b5fd"},{name:"에메랄드",hex:"#6ee7b7"},{name:"코랄",hex:"#fca5a5"},{name:"스카이블루",hex:"#7dd3fc"},{name:"로즈핑크",hex:"#f9a8d4"},{name:"딥퍼플",hex:"#a855f7"},{name:"민트",hex:"#5eead4"},{name:"선셋오렌지",hex:"#fdba74"},{name:"터콰이즈",hex:"#2dd4bf"}],
   directions:["동쪽","서쪽","남쪽","북쪽","남동쪽","북동쪽","남서쪽","북서쪽"],
@@ -366,7 +369,8 @@ const LUCKY={
 };
 
 /* ── 상태 ── */
-let concern="", emotion="", zodiac="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="", lastBlocks=[];
+let concern="", emotions=[], zodiac="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="", lastBlocks=[];
+function emotionText(){ return emotions.join(', '); }
 let soundOn=true, audioCtx=null, bgmEl=null, ytPlayer=null, ytReady=false, userGestured=false;
 // 로고는 이미 투명 처리된 내장(data URI) 이미지를 그대로 사용 → file://에서도 안전 (캔버스 taint 없음)
 let LOGO_SRC=CONFIG.LOGO_URL;
@@ -436,10 +440,23 @@ function buildEmotions(){
   EMOTIONS.forEach(e=>{
     const d=document.createElement('div'); d.className='emo';
     d.innerHTML=`<span class="emo-ico">${e.ico}</span>${e.label}`;
-    d.onclick=()=>{ emotion=e.label; clickSound(); go('zodiac'); };
+    d.onclick=()=>toggleEmotion(e.label,d);
     g.appendChild(d);
   });
 }
+function toggleEmotion(label,el){
+  const i=emotions.indexOf(label);
+  if(i>=0){ emotions.splice(i,1); el.classList.remove('sel'); }
+  else {
+    if(emotions.length>=2){ showToast('감정은 최대 2개까지 선택할 수 있어요'); return; }
+    emotions.push(label); el.classList.add('sel');
+  }
+  clickSound();
+  const btn=document.getElementById('emoNext');
+  if(emotions.length>=1){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }
+  else { btn.style.opacity='.4'; btn.style.pointerEvents='none'; }
+}
+function submitEmotion(){ if(emotions.length<1) return; clickSound(); go('zodiac'); }
 function buildZodiac(){
   const g=document.getElementById('zodiacGrid'); g.innerHTML='';
   ZODIACS.forEach(z=>{
@@ -529,7 +546,7 @@ function renderResult(data, byAI){
   const keySet=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
   document.getElementById('demoNote').textContent = byAI ? 'AI 실시간' : (keySet && lastAIError ? '데모(오류): '+lastAIError : '데모 모드');
   document.getElementById('concernEcho').textContent='💭 "'+concern+'"';
-  document.getElementById('emoEcho').textContent='현재 감정: '+emotion+(zodiac?'   ·   '+zodiac:'');
+  document.getElementById('emoEcho').textContent='현재 감정: '+emotionText()+(zodiac?'   ·   '+zodiac:'');
   const blocks=document.getElementById('blocks');
   blocks.innerHTML=chosen.map((c,i)=>`
     <div class="block ${c.rev?'rev':''}">
@@ -539,7 +556,7 @@ function renderResult(data, byAI){
         <div class="bn">${c.card.ko}</div>
         <div class="bo ${c.rev?'dn':'up'}">${c.rev?'역방향':'정방향'}</div>
       </div>
-      <div class="btext"><div class="bpos">[ ${POS[i]} ] ${c.card.ko}</div><p>${data.blocks[i]}</p></div>
+      <div class="btext"><div class="bpos">[ ${POS_ROLE[i]} ] ${c.card.ko}</div><p>${data.blocks[i]}</p></div>
     </div>`).join('');
   document.getElementById('finalAdvice').innerHTML=`<div class="fa-label">✦ 종합 조언 ✦</div><p>${data.final}</p>`;
   lastFinal=data.final; lastLine=data.finalLine;
@@ -569,7 +586,9 @@ function buildLucky(){
 
 function resetAll(){
   clearTimeout(resetTimer);
-  concern="";emotion="";zodiac="";chosen=[];
+  concern="";emotions=[];zodiac="";chosen=[];
+  document.querySelectorAll('.emo.sel').forEach(el=>el.classList.remove('sel'));
+  const eb=document.getElementById('emoNext'); if(eb){ eb.style.opacity='.4'; eb.style.pointerEvents='none'; }
   document.getElementById('concernInput').value='';
   go('start');
 }
@@ -589,21 +608,27 @@ function buildTicker(){
 
 /* ══ 실제 AI 호출 ══ */
 function buildPrompt(){
-  const lines=chosen.map((c,i)=>`${POS[i]}: ${c.card.ko}(${c.card.en}) ${c.rev?'역방향':'정방향'} — ${c.rev?c.card.dn:c.card.up}`).join('\n');
-  return `당신은 따뜻하고 지혜로운 타로 상담가입니다. 아래 정보를 바탕으로 ${CONFIG.TONE} 한국어 해석을 작성하세요. 관람객이 충분히 읽고 위로받을 수 있도록 풍성하고 구체적으로 써주세요.
+  const lines=chosen.map((c,i)=>`${POS[i]}: ${c.card.ko}(${c.card.en}) ${c.rev?'역방향':'정방향'} — 기본의미: ${c.rev?c.card.dn:c.card.up}`).join('\n');
+  return `당신은 따뜻하고 통찰력 있는 타로 상담가입니다. ${CONFIG.TONE} 한국어로 답하세요.
+아래 [고민]을 중심축으로 삼아, 뽑은 3장의 카드를 고민과 "유기적으로 엮어" 해석하세요. 카드의 사전적 의미만 나열하지 말고, 반드시 이 사람의 고민 상황에 직접 대입해 구체적으로 풀어주세요.
 
 [고민] ${concern}
-[현재 감정] ${emotion}
+[선택한 감정] ${emotionText()}
 [별자리] ${zodiac||'미선택'}
 [뽑은 카드]
 ${lines}
 
+각 카드의 역할(반드시 이 관점으로 해석):
+- 과거(past): 이 [고민]이 생기게 된 "근본 원인/배경"을 카드로 짚어주세요. 왜 지금 이런 상황이 되었는지.
+- 현재(present): 사용자가 선택한 [감정]과 지금 상황을 직접 연결해 깊이 "공감"해주세요. "지금 ~하게 느끼시는 건 당연해요" 같은 톤으로.
+- 미래(future): [고민] 해결을 위한 "구체적이고 실천 가능한 행동 조언/솔루션"을 제시하세요. 막연한 위로가 아니라 실제로 무엇을 하면 좋을지.
+
 작성 규칙:
-- 고민 내용과 감정, 별자리를 실제로 반영해 개인화하세요.
-- 각 카드 해석은 3~4문장으로 풍부하게.
-- 종합 조언은 세 카드의 흐름을 엮어 5~6문장으로, 구체적 실천 조언을 포함.
+- 반드시 고민 내용을 직접 언급하며 개인화할 것. 일반론 금지.
+- 각 항목 3~4문장, 쉽고 직관적으로.
+- final(종합)은 원인→현재감정→해결책 흐름을 한 번에 정리하는 5~6문장.
 - 아래 JSON 형식으로만 답하세요(설명·군더더기 없이):
-{"past":"과거 카드 해석 3~4문장","present":"현재 카드 해석 3~4문장","future":"미래 카드 해석 3~4문장","final":"종합 조언 5~6문장","finalLine":"핵심을 담은 따뜻한 한 문장"}`;
+{"past":"고민의 근본 원인 3~4문장","present":"감정 공감 3~4문장","future":"구체적 행동 조언/솔루션 3~4문장","final":"원인·감정·해결책을 엮은 종합 조언 5~6문장","finalLine":"핵심을 담은 따뜻한 한 문장"}`;
 }
 let lastAIError='';
 async function callAI(){
@@ -635,13 +660,13 @@ async function callAI(){
 /* ══ 데모용 로컬 해석 ══ */
 function localReading(){
   const [p,c,f]=chosen; const m=x=>x.rev?x.card.dn:x.card.up; const a=x=>x.rev?x.card.da:x.card.ua;
-  const zsuffix=zodiac?` ${zodiac}인 당신에게는 특히 이 흐름이 의미 있게 다가올 거예요.`:'';
+  const emo=emotionText()||'지금의 마음';
   const blocks=[
-    `과거의 자리에 놓인 '${p.card.ko}' 카드는 ${m(p)}의 기운을 담고 있어요. 지금 당신이 겪는 상황의 뿌리가 바로 여기에 있어요. 그동안 쌓아온 경험과 선택들이 지금의 당신을 만들어왔다는 걸 카드가 조용히 일러줍니다. ${a(p)}`,
-    `현재의 자리에서 '${c.card.ko}' 카드는 ${m(c)}를 이야기하고 있어요. 지금 당신이 느끼는 '${emotion}'의 마음과 이 카드는 깊이 맞닿아 있어요. 그 감정은 약함이 아니라, 당신이 진심으로 이 문제를 마주하고 있다는 증거예요. ${a(c)}`,
-    `미래의 자리에서 '${f.card.ko}' 카드는 ${m(f)}를 향해 흐르고 있어요. 아직 오지 않은 시간이지만, 카드는 그 방향이 분명히 움직이고 있음을 보여줘요. 당신의 오늘의 선택이 이 흐름을 더 밝게 만들 수 있어요. ${a(f)}`,
+    `"${concern}" — 이 고민이 시작된 뿌리에 '${p.card.ko}' 카드가 놓였어요. ${m(p)}의 기운이 지금 상황을 만든 배경이에요. 그동안의 선택과 경험이 쌓여 지금의 고민으로 이어진 거예요. ${a(p)}`,
+    `지금 '${emo}'을(를) 느끼고 계시죠. 현재 자리의 '${c.card.ko}' 카드는 ${m(c)}를 말하는데, 그 마음과 정확히 맞닿아 있어요. 그렇게 느끼는 건 너무 자연스러운 거예요 — 당신이 이 문제를 진심으로 마주하고 있다는 증거니까요. ${a(c)}`,
+    `그렇다면 이제 무엇을 하면 좋을까요. 미래 자리의 '${f.card.ko}' 카드는 ${m(f)}를 향해 가라고 알려줘요. ${a(f)} 오늘 할 수 있는 작은 한 걸음부터 시작하면, 이 고민은 분명히 풀려나가기 시작할 거예요.`,
   ];
-  const final=`"${concern}"라는 당신의 고민에, 세 장의 카드는 이렇게 답해요. 과거의 ${p.card.ko}에서 시작된 흐름이 현재의 ${c.card.ko}를 지나 미래의 ${f.card.ko}로 이어지고 있어요. 지금 느끼시는 '${emotion}'의 감정은 끝이 아니라 반드시 지나가는 길목이에요. 현재 자리에 ${c.card.ko} 카드가 나온 건, 당신이 이미 답의 실마리를 손에 쥐고 있다는 뜻이기도 해요. 조급해하지 말고, 오늘 할 수 있는 작은 한 걸음부터 시작해보세요.${zsuffix} 흐름은 분명히 당신 편이에요.`;
+  const final=`정리하면 — "${concern}"의 고민은 '${p.card.ko}'(원인)에서 비롯되어, 지금 '${emo}'이라는 감정('${c.card.ko}')으로 나타나고 있어요. 하지만 미래의 '${f.card.ko}' 카드가 분명한 해결의 방향을 보여주고 있어요. ${a(f)} 지금의 감정은 끝이 아니라 지나가는 길목이고, 당신은 이미 답의 실마리를 쥐고 있어요. 조급해하지 말고 오늘 작은 한 걸음부터 내디뎌 보세요. 흐름은 분명히 당신 편이에요.`;
   const finalLine=`오늘 이 카드들이, 당신의 하루에 작은 등불이 되길 바라요. 🌟`;
   return { blocks, final, finalLine, byAI:false };
 }
