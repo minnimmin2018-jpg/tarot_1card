@@ -631,9 +631,16 @@ function renderResult(data, byAI){
   resetTimer=setTimeout(resetAll, CONFIG.AUTO_RESET_SEC*1000);
 }
 
+let _lastLuckyKey={color:'',number:0,direction:'',item:'',message:''};
 function buildLucky(){
-  const r=a=>a[Math.floor(Math.random()*a.length)];
-  return { color:r(LUCKY.colors), number:Math.floor(Math.random()*9)+1, direction:r(LUCKY.directions), item:r(LUCKY.items), message:r(LUCKY.messages) };
+  const pick=(arr,last)=>{ let v=arr[Math.floor(Math.random()*arr.length)],t=0; while(arr.length>1 && (v.name!==undefined?v.name:v)===last && t<6){ v=arr[Math.floor(Math.random()*arr.length)]; t++; } return v; };
+  const color=pick(LUCKY.colors,_lastLuckyKey.color);
+  let number=Math.floor(Math.random()*9)+1, tn=0; while(number===_lastLuckyKey.number && tn<6){ number=Math.floor(Math.random()*9)+1; tn++; }
+  const direction=pick(LUCKY.directions,_lastLuckyKey.direction);
+  const item=pick(LUCKY.items,_lastLuckyKey.item);
+  const message=pick(LUCKY.messages,_lastLuckyKey.message);
+  _lastLuckyKey={color:color.name,number,direction,item,message};
+  return { color, number, direction, item, message };
 }
 
 function redrawCards(){
