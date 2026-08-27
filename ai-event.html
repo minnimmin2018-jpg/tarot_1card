@@ -507,7 +507,7 @@ function dealCards(){
   const order=[...Array(N).keys()].sort(()=>Math.random()-0.5);
   order.forEach((idx,i)=>{
     const d=document.createElement('div'); d.className='pcard dealt';
-    const off=i-(N-1)/2; const ang=off*4.0; const x=off*47; const yArc=Math.abs(off)*Math.abs(off)*0.7;
+    const off=i-(N-1)/2; const ang=off*3.6; const x=off*40; const yArc=Math.abs(off)*Math.abs(off)*0.62;
     const base=`translateX(${x}px) translateY(${yArc}px) rotate(${ang}deg)`;
     d.style.transform=base;
     d.style.zIndex=i; d.style.animationDelay=(i*0.03)+'s';
