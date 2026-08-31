@@ -108,7 +108,11 @@
   .slot .sslabel { font-size:.82rem; }
   .slot.filled { border-style:solid; border-color:#c9a96e; background:rgba(201,169,110,.14); font-size:3.2rem; animation:slotFlip .5s ease; box-shadow:0 0 18px rgba(201,169,110,.3); }
   @keyframes slotFlip { 0%{transform:rotateY(90deg) scale(.7);opacity:0} 55%{transform:rotateY(-12deg) scale(1.08)} 100%{transform:rotateY(0) scale(1);opacity:1} }
-  .deck-wrap { position:relative; width:100%; display:flex; align-items:center; }
+  .deck-wrap { position:relative; width:100%; display:flex; align-items:center; transition:transform .42s ease, opacity .42s ease; }
+  .deck-wrap.page-out { transform:translateX(-70px); opacity:0; }
+  .deck-wrap.page-in { animation:pageIn .5s ease; }
+  @keyframes pageIn { from{ transform:translateX(70px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+  .page-badge { display:inline-block; font-size:.62em; color:#1a0533; background:linear-gradient(135deg,#f5d78e,#c9a96e); padding:3px 12px; border-radius:999px; vertical-align:middle; margin-left:8px; font-weight:bold; }
   .deck-arrow { flex:0 0 auto; width:56px; height:56px; border-radius:50%; border:2px solid #c9a96e;
     background:rgba(30,20,60,.75); color:#f5d78e; font-size:1.3rem; cursor:pointer; z-index:6;
     display:flex; align-items:center; justify-content:center; transition:all .18s; box-shadow:0 4px 16px rgba(0,0,0,.4); }
@@ -292,7 +296,7 @@
     <div class="slot" id="slot1"><span class="sslabel">현재</span></div>
     <div class="slot" id="slot2"><span class="sslabel">미래</span></div>
   </div>
-  <div class="deck-wrap">
+  <div class="deck-wrap" id="deckWrap">
     <button class="deck-arrow left" id="deckLeft" onclick="scrollDeck(-1)" aria-label="이전 카드">◀</button>
     <div class="fan" id="fan"></div>
     <button class="deck-arrow right" id="deckRight" onclick="scrollDeck(1)" aria-label="다음 카드">▶</button>
@@ -515,23 +519,25 @@ function startAnalyze(){
   setTimeout(()=>{ clearInterval(iv); dealCards(); go('cards'); },9500);
 }
 
-/* ── 카드 셔플 & 순차 선택 ── */
+/* ── 카드 셔플 & 순차 선택 (과거→현재→미래 3페이지) ── */
 function dealCards(){
-  chosen=[];
+  chosen=[]; cardBusy=false;
   [0,1,2].forEach(i=>{ const s=document.getElementById('slot'+i); s.className='slot'; s.innerHTML=`<span class="sslabel">${POS[i]}</span>`; });
   updatePrompt();
+  buildDeck();
+}
+function buildDeck(){
   const fan=document.getElementById('fan'); fan.innerHTML='';
   const N=CARDS.length;
   const order=[...Array(N).keys()].sort(()=>Math.random()-0.5);
   order.forEach((idx,i)=>{
     const d=document.createElement('div'); d.className='pcard dealt';
-    d.style.animationDelay=(i*0.03)+'s';
+    d.style.animationDelay=(i*0.025)+'s';
     d.innerHTML=cardBack();
     d.onclick=()=>{ if(fan.dataset.dragged==='1') return; chooseCard(idx,d); };
     fan.appendChild(d);
   });
   setupDeckScroll(fan);
-  // 처음엔 가운데쯤에서 시작(양쪽으로 밀 수 있음을 인지시킴)
   setTimeout(()=>{ fan.scrollLeft=(fan.scrollWidth-fan.clientWidth)/2; },60);
   flipSound();
 }
@@ -550,18 +556,28 @@ function setupDeckScroll(sc){
 }
 function updatePrompt(){
   const i=chosen.length;
-  if(i<3) document.getElementById('pickPrompt').innerHTML=`<span class="gold">${POS[i]}</span>의 카드를 선택하세요`;
+  if(i<3) document.getElementById('pickPrompt').innerHTML=`<span class="gold">${POS[i]}</span>의 카드를 선택하세요 <span class="page-badge">${i+1} / 3</span>`;
 }
+let cardBusy=false;
 function chooseCard(idx,el){
-  if(el.classList.contains('taken')||chosen.length>=3) return;
+  if(cardBusy||el.classList.contains('taken')||chosen.length>=3) return;
+  cardBusy=true;
   const rev=Math.random()<0.35;
   chosen.push({card:CARDS[idx],rev});
   el.classList.add('glow'); flipSound();
   const slot=document.getElementById('slot'+(chosen.length-1));
   slot.className='slot filled'; slot.textContent=CARDS[idx].s;
-  setTimeout(()=>{ el.classList.add('taken'); },380);
-  if(chosen.length>=3){ setTimeout(runReading,700); }
-  else updatePrompt();
+  if(chosen.length>=3){ setTimeout(()=>{ cardBusy=false; runReading(); },800); return; }
+  // 다음 페이지(위치)로 전환
+  const wrap=document.getElementById('deckWrap');
+  setTimeout(()=>{
+    wrap.classList.add('page-out');
+    setTimeout(()=>{
+      updatePrompt(); buildDeck();
+      wrap.classList.remove('page-out'); wrap.classList.add('page-in');
+      setTimeout(()=>{ wrap.classList.remove('page-in'); cardBusy=false; },520);
+    },420);
+  },560);
 }
 
 /* ── 해석 실행 (최소 6.5초 연출 보장) ── */
