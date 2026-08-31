@@ -182,6 +182,15 @@
     border-radius:16px; padding:20px; margin:8px 0 14px; text-align:left; }
   .final-advice .fa-label { font-size:.72rem; color:#c9a96e; letter-spacing:1px; margin-bottom:8px; }
   .final-advice p { font-size:1.08rem; color:#f0e6ff; line-height:1.9; white-space:pre-line; }
+  /* 핵심 강조 */
+  .hl { color:#ffe9a8; font-weight:bold; }
+  /* 3대 영역 */
+  #lifeAreas { margin-bottom:14px; }
+  .areas-title { text-align:center; font-size:.95rem; color:#c9a96e; letter-spacing:1px; margin:18px 0 12px; }
+  .area-block { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-left:4px solid var(--ac,#c9a96e);
+    border-radius:0 14px 14px 0; padding:16px 18px; margin-bottom:12px; text-align:left; }
+  .area-head { font-size:1.02rem; font-weight:bold; color:var(--ac,#f5d78e); margin-bottom:8px; letter-spacing:.5px; }
+  .area-block p { font-size:1.05rem; color:#e8dcff; line-height:1.85; white-space:pre-line; }
 
   .lucky { background:linear-gradient(135deg,rgba(6,182,212,.12),rgba(124,58,237,.14)); border:1px solid rgba(6,182,212,.35); border-radius:16px; padding:20px; margin-bottom:20px; }
   .lucky-title { font-size:1rem; color:#7dd3e8; letter-spacing:1px; margin-bottom:14px; font-weight:bold; }
@@ -318,6 +327,7 @@
     <div class="emo-echo" id="emoEcho"></div>
     <div id="blocks"></div>
     <div class="final-advice" id="finalAdvice"></div>
+    <div id="lifeAreas"></div>
     <div class="lucky" id="lucky"></div>
     <div class="photo-hint">📷 이 결과를 간직하고 싶다면, 휴대폰으로 화면을 촬영해 가세요!</div>
     <div class="result-btns">
@@ -636,10 +646,21 @@ function renderResult(data, byAI){
         <div class="bn">${c.card.ko}</div>
         <div class="bo ${c.rev?'dn':'up'}">${c.rev?'역방향':'정방향'}</div>
       </div>
-      <div class="btext"><div class="bpos">[ ${POS_ROLE[i]} ] ${c.card.ko}</div><p>${data.blocks[i]}</p></div>
+      <div class="btext"><div class="bpos">[ ${POS_ROLE[i]} ] ${c.card.ko}</div><p>${emph(data.blocks[i])}</p></div>
     </div>`).join('');
-  document.getElementById('finalAdvice').innerHTML=`<div class="fa-label">✦ 종합 조언 ✦</div><p>${data.final}</p>`;
+  document.getElementById('finalAdvice').innerHTML=`<div class="fa-label">✦ 종합 조언 ✦</div><p>${emph(data.final)}</p>`;
   lastFinal=data.final; lastLine=data.finalLine;
+
+  // 3대 영역 운세 (재물·직업·연애)
+  const areas=[
+    ['💰','재물과 돈','money','#f5d78e'],
+    ['💼','직업과 명예','career','#7dd3fc'],
+    ['💗','연애와 결혼','love','#f9a8d4'],
+  ].filter(a=>data[a[2]]);
+  document.getElementById('lifeAreas').innerHTML = areas.length ? (
+    '<div class="areas-title">✦ 세 가지 영역 운세 ✦</div>' +
+    areas.map(a=>`<div class="area-block" style="--ac:${a[3]}"><div class="area-head">${a[0]} ${a[1]}</div><p>${emph(data[a[2]])}</p></div>`).join('')
+  ) : '';
 
   const lk=buildLucky(); lastLucky=lk;
   document.getElementById('lucky').innerHTML=`
@@ -659,6 +680,12 @@ function renderResult(data, byAI){
   resetTimer=setTimeout(resetAll, CONFIG.AUTO_RESET_SEC*1000);
 }
 
+// **강조** → 금색 굵은 글씨, 텍스트 이스케이프
+function emph(t){
+  let s=String(t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return s.replace(/\*\*([^*]+)\*\*/g,'<span class="hl">$1</span>');
+}
+function stripMarks(t){ return String(t||'').replace(/\*\*/g,''); }
 let _lastLuckyKey={color:'',number:0,direction:'',item:'',message:''};
 function buildLucky(){
   const pick=(arr,last)=>{ let v=arr[Math.floor(Math.random()*arr.length)],t=0; while(arr.length>1 && (v.name!==undefined?v.name:v)===last && t<6){ v=arr[Math.floor(Math.random()*arr.length)]; t++; } return v; };
@@ -717,13 +744,20 @@ ${lines}
 - 현재(present): 사용자가 선택한 [감정]과 지금 상황을 직접 연결해 깊이 "공감"해주세요. "지금 ~하게 느끼시는 건 당연해요" 같은 톤으로.
 - 미래(future): [고민] 해결을 위한 실천 조언을 제시하되, 막연한 위로가 아니라 "지금 당장/이번 주에 해볼 수 있는 아주 구체적이고 현실적인 행동"을 반드시 2~3가지 제안하세요. (예: 무엇을, 어떻게, 언제 해볼지까지)
 
+추가로, 뽑은 3장의 카드 흐름을 바탕으로 아래 3가지 삶의 영역 운세도 각각 풀어주세요(고민과도 자연스럽게 연결):
+- money(재물과 돈): 금전운·재물 흐름·소비/투자에 대한 조언
+- career(직업과 명예): 일·커리어·인정받는 것에 대한 운세와 조언
+- love(연애와 결혼): 사랑·인연·관계에 대한 운세와 조언
+
 작성 규칙:
 - 반드시 고민 내용을 직접 언급하며 개인화할 것. 일반론 금지.
 - 관람객이 오래 머물며 읽을 수 있도록 충분히 길고 풍성하게 쓰세요.
 - past/present는 각 4~5문장. future는 구체적 행동 제안 2~3개를 포함해 5~6문장으로 넉넉하게.
 - final(종합)은 원인→현재감정→해결책 흐름을 정리하는 6~7문장.
+- money/career/love는 각각 3~4문장으로 풍성하게.
+- ★중요: 각 항목마다 가장 핵심이 되는 문장이나 표현 1~2군데를 **별표 두 개**로 감싸 강조하세요. 예) 지금은 **새로운 시작에 가장 좋은 시기**예요. (전체를 감싸지 말고 핵심만 짧게)
 - 아래 JSON 형식으로만 답하세요(설명·군더더기 없이):
-{"past":"고민의 근본 원인 4~5문장","present":"감정 공감 4~5문장","future":"현실적 행동 조언 2~3가지 포함 5~6문장","final":"원인·감정·해결책을 엮은 종합 조언 6~7문장","finalLine":"핵심을 담은 따뜻한 한 문장"}`;
+{"past":"근본 원인 4~5문장","present":"감정 공감 4~5문장","future":"현실적 행동 조언 2~3가지 5~6문장","money":"재물운 3~4문장","career":"직업운 3~4문장","love":"연애운 3~4문장","final":"종합 조언 6~7문장","finalLine":"핵심 한 문장"}`;
 }
 let lastAIError='';
 async function callAI(){
@@ -733,13 +767,13 @@ async function callAI(){
     if(CONFIG.AI_PROVIDER==='openai'){
       const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:ctrl.signal,
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+CONFIG.API_KEY},
-        body:JSON.stringify({model:CONFIG.OPENAI_MODEL,max_tokens:2200,messages:[{role:'user',content:prompt}]})});
+        body:JSON.stringify({model:CONFIG.OPENAI_MODEL,max_tokens:3000,messages:[{role:'user',content:prompt}]})});
       if(!r.ok){ lastAIError='HTTP '+r.status+': '+(await r.text()).slice(0,140); clearTimeout(to); return null; }
       const d=await r.json(); txt=d.choices?.[0]?.message?.content;
     } else {
       const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:ctrl.signal,
         headers:{'Content-Type':'application/json','x-api-key':CONFIG.API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:CONFIG.CLAUDE_MODEL,max_tokens:2200,temperature:1,messages:[{role:'user',content:prompt}]})});
+        body:JSON.stringify({model:CONFIG.CLAUDE_MODEL,max_tokens:3000,temperature:1,messages:[{role:'user',content:prompt}]})});
       if(!r.ok){ lastAIError='HTTP '+r.status+': '+(await r.text()).slice(0,140); clearTimeout(to); return null; }
       const d=await r.json(); txt=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     }
@@ -750,7 +784,7 @@ async function callAI(){
     const j=JSON.parse(s);
     if(!j.past||!j.present||!j.future){ lastAIError='필드 누락'; return null; }
     lastAIError='';
-    return { blocks:[j.past,j.present,j.future], final:j.final||'', finalLine:j.finalLine||j.final||'', byAI:true };
+    return { blocks:[j.past,j.present,j.future], money:j.money||'', career:j.career||'', love:j.love||'', final:j.final||'', finalLine:j.finalLine||j.final||'', byAI:true };
   }catch(e){ clearTimeout(to); lastAIError = (e&&e.name==='AbortError') ? '응답 지연(30초 초과)' : String(e).slice(0,140); return null; }
 }
 
@@ -759,13 +793,16 @@ function localReading(){
   const [p,c,f]=chosen; const m=x=>x.rev?x.card.dn:x.card.up; const a=x=>x.rev?x.card.da:x.card.ua;
   const emo=emotionText()||'지금의 마음';
   const blocks=[
-    `"${concern}" — 이 고민이 시작된 뿌리에 '${p.card.ko}' 카드가 놓였어요. ${m(p)}의 기운이 지금 상황을 만든 배경이에요. 그동안 당신이 해온 선택과 겪어온 경험들이 차곡차곡 쌓여 지금의 고민으로 이어진 거예요. 우연히 생긴 일이 아니라, 분명한 흐름 속에서 지금에 도달한 거죠. ${a(p)}`,
-    `지금 '${emo}'을(를) 느끼고 계시죠. 현재 자리의 '${c.card.ko}' 카드는 ${m(c)}를 말하는데, 그 마음과 정확히 맞닿아 있어요. 그렇게 느끼는 건 너무 자연스러운 거예요 — 당신이 이 문제를 그만큼 진심으로 마주하고 있다는 증거니까요. 그 감정을 억누르기보다, 있는 그대로 인정해주는 것이 첫걸음이에요. ${a(c)}`,
-    `그렇다면 이제 무엇을 하면 좋을까요. 미래 자리의 '${f.card.ko}' 카드는 ${m(f)}를 향해 가라고 알려줘요. 현실적으로 이렇게 시작해보세요 — ① 지금 느끼는 마음을 노트에 3줄로 적어 생각을 정리하고, ② 이번 주 안에 아주 작은 행동 하나(관련된 사람과 대화하기, 정보 찾아보기 등)를 실제로 해보고, ③ 혼자 끙끙대지 말고 믿을 만한 한 사람에게 털어놓아 보세요. ${a(f)} 이 작은 걸음들이 모이면 고민은 분명히 풀려나가기 시작할 거예요.`,
+    `"${concern}" — 이 고민이 시작된 뿌리에 '${p.card.ko}' 카드가 놓였어요. ${m(p)}의 기운이 지금 상황을 만든 배경이에요. **그동안 쌓아온 선택과 경험들이 지금의 고민으로 이어진 것**이지, 우연히 생긴 일이 아니에요. ${a(p)}`,
+    `지금 '${emo}'을(를) 느끼고 계시죠. 현재 자리의 '${c.card.ko}' 카드는 ${m(c)}를 말하는데, 그 마음과 정확히 맞닿아 있어요. **그렇게 느끼는 건 너무 자연스러운 거예요** — 당신이 이 문제를 진심으로 마주하고 있다는 증거니까요. 억누르기보다 있는 그대로 인정해주는 것이 첫걸음이에요. ${a(c)}`,
+    `그렇다면 이제 무엇을 하면 좋을까요. 미래 자리의 '${f.card.ko}' 카드는 ${m(f)}를 향해 가라고 알려줘요. 현실적으로 이렇게 시작해보세요 — ① **지금 느끼는 마음을 노트에 3줄로 적어** 생각을 정리하고, ② 이번 주 안에 **아주 작은 행동 하나**(대화하기·정보 찾기 등)를 실제로 해보고, ③ 혼자 끙끙대지 말고 믿을 만한 한 사람에게 털어놓아 보세요. ${a(f)}`,
   ];
-  const final=`정리하면 — "${concern}"의 고민은 '${p.card.ko}'(원인)에서 비롯되어, 지금 '${emo}'이라는 감정('${c.card.ko}')으로 나타나고 있어요. 하지만 미래의 '${f.card.ko}' 카드가 분명한 해결의 방향을 보여주고 있어요. ${a(f)} 지금의 감정은 끝이 아니라 지나가는 길목이고, 당신은 이미 답의 실마리를 쥐고 있어요. 조급해하지 말고 오늘 작은 한 걸음부터 내디뎌 보세요. 흐름은 분명히 당신 편이에요.`;
+  const money=`재물운은 지금 **큰 지출보다 흐름을 지키는 것**이 중요한 시기예요. 무리한 투자나 충동적인 소비는 잠시 미루고, 있는 것을 단단히 관리하면 곧 안정이 찾아와요. 작더라도 꾸준히 모으는 습관이 뜻밖의 기회로 이어질 거예요.`;
+  const career=`직업운에서는 **당신의 노력이 서서히 인정받기 시작하는 흐름**이에요. 조급해하지 말고 지금 맡은 일에 성실히 임하면, 좋은 평가와 새로운 기회가 따라와요. 사람과의 관계에서 신뢰를 쌓는 것이 특히 큰 자산이 될 거예요.`;
+  const love=`연애운은 **진심을 솔직하게 표현할 때 가장 빛나는 시기**예요. 솔로라면 예상치 못한 곳에서 인연이 찾아올 수 있고, 커플이라면 작은 배려가 관계를 더 깊게 만들어줘요. 마음을 닫기보다 한 걸음 다가가 보세요.`;
+  const final=`정리하면 — "${concern}"의 고민은 '${p.card.ko}'(원인)에서 비롯되어, 지금 '${emo}'이라는 감정('${c.card.ko}')으로 나타나고 있어요. 하지만 미래의 '${f.card.ko}' 카드가 분명한 해결의 방향을 보여주고 있어요. ${a(f)} **지금의 감정은 끝이 아니라 지나가는 길목**이고, 당신은 이미 답의 실마리를 쥐고 있어요. 조급해하지 말고 오늘 작은 한 걸음부터 내디뎌 보세요. 흐름은 분명히 당신 편이에요.`;
   const finalLine=`오늘 이 카드들이, 당신의 하루에 작은 등불이 되길 바라요. 🌟`;
-  return { blocks, final, finalLine, byAI:false };
+  return { blocks, money, career, love, final, finalLine, byAI:false };
 }
 
 /* ══ 9:16 포토카드 저장 ══ */
@@ -776,6 +813,7 @@ function wrapCount(x,text,maxW){
 }
 function photoLayout(x, draw){
   const W=1080, bx=80, bw=W-160, pad=40, innerW=bw-pad*2;
+  const pFinal=stripMarks(lastFinal), pLine=stripMarks(lastLine);
   x.textAlign='center'; let y=40;
   y+=90; if(draw){ x.fillStyle='#c9a96e'; x.font='bold 32px Malgun Gothic'; x.fillText(CONFIG.EVENT_NAME,W/2,y); }
   y+=72; if(draw){ x.fillStyle='#f5d78e'; x.font='900 60px Malgun Gothic'; x.fillText('AI 타로 리딩',W/2,y); }
@@ -795,26 +833,26 @@ function photoLayout(x, draw){
   y+=ch+50;
   // 종합 리딩
   x.font='30px Malgun Gothic';
-  const fLines=wrapCount(x, lastFinal||'', innerW);
+  const fLines=wrapCount(x, pFinal, innerW);
   const fTop=y, fH=70 + fLines*46 + 40;
   if(draw){
     x.fillStyle='rgba(124,58,237,0.16)'; roundRect(x,bx,fTop,bw,fH,22); x.fill();
     x.strokeStyle='rgba(124,58,237,0.5)'; x.lineWidth=2; roundRect(x,bx,fTop,bw,fH,22); x.stroke();
     x.fillStyle='#c9a96e'; x.font='bold 30px Malgun Gothic'; x.fillText('✦ 종합 리딩 ✦',W/2,fTop+52);
     x.fillStyle='#f0e6ff'; x.font='30px Malgun Gothic'; x.textAlign='left';
-    wrapText(x, lastFinal||'', bx+pad, fTop+104, innerW, 46); x.textAlign='center';
+    wrapText(x, pFinal, bx+pad, fTop+104, innerW, 46); x.textAlign='center';
   }
   y+=fH+16;
   // 오늘의 한마디
   x.font='30px Malgun Gothic';
-  const aLines=wrapCount(x, lastLine||'', bw-90);
+  const aLines=wrapCount(x, pLine, bw-90);
   const aTop=y, aH=56 + aLines*42 + 34;
   if(draw){
     x.fillStyle='rgba(6,182,212,0.10)'; roundRect(x,bx,aTop,bw,aH,22); x.fill();
     x.strokeStyle='rgba(6,182,212,0.4)'; x.lineWidth=2; roundRect(x,bx,aTop,bw,aH,22); x.stroke();
     x.fillStyle='#7dd3e8'; x.font='24px Malgun Gothic'; x.fillText('✦ 오늘의 한마디 ✦',W/2,aTop+46);
     x.fillStyle='#dbeafe'; x.font='30px Malgun Gothic';
-    wrapText(x, lastLine||'', W/2, aTop+90, bw-90, 42, true);
+    wrapText(x, pLine, W/2, aTop+90, bw-90, 42, true);
   }
   y+=aH+30;
   if(draw && lastLucky){ x.fillStyle='#7dd3e8'; x.font='26px Malgun Gothic';
