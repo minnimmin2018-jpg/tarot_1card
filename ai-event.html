@@ -343,7 +343,19 @@ const CONFIG = {
   BGM_YOUTUBE_ID:'',               // (유튜브 미사용 - MP3 파일 사용)
   AUTO_RESET_SEC:120,
   TONE:'따뜻하고 위로가 되는 다정한 말투로, 희망을 주되 뻔하지 않게',
+  // ── AI 자동 활성화 기간 (이 기간에만 실시간 AI 작동, 그 외에는 샘플 해석 → 토큰 사용 0) ──
+  AI_START:'2026-09-04T00:00:00',  // 이 시각부터 AI ON
+  AI_END:'2026-09-06T00:00:00',    // 이 시각부터 다시 OFF (행사 후 토큰 보호)
 };
+// 현재 시각이 활성화 기간 안이고 키가 있으면 true
+function aiActive(){
+  const k=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
+  if(!k) return false;
+  const now=new Date();
+  if(CONFIG.AI_START && now < new Date(CONFIG.AI_START)) return false;
+  if(CONFIG.AI_END && now >= new Date(CONFIG.AI_END)) return false;
+  return true;
+}
 
 /* ── 감정 선택지 ── */
 const EMOTIONS = [
@@ -597,7 +609,7 @@ async function runReading(){
   const msgIv=setInterval(()=>{ mi=(mi+1)%msgs.length; rt.textContent=msgs[mi]; },1900);
   let p=0; const barIv=setInterval(()=>{ p+=100/(MIN_READ_MS/100); fill.style.width=Math.min(p,97)+'%'; },100);
 
-  const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
+  const useAI=aiActive();
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const getData=(async()=>{ try{ return useAI ? await callAI() : null; }catch(e){ return null; } })();
   // 데이터와 최소 연출시간을 함께 기다림
@@ -610,7 +622,7 @@ async function runReading(){
 
 /* ── 결과 렌더 ── */
 function renderResult(data, byAI){
-  const keySet=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
+  const keySet=aiActive();
   document.getElementById('demoNote').textContent = byAI ? 'AI 실시간' : (keySet && lastAIError ? '데모(오류): '+lastAIError : '데모 모드');
   const st=document.getElementById('aiStatus'); if(st){ st.style.background = byAI ? '#4ade80' : (keySet ? '#f59e0b' : '#555'); st.style.opacity = byAI ? '.85' : '.6'; st.title = byAI ? 'AI 실시간 연결됨' : (keySet ? 'AI 연결 실패 — 인터넷 확인' : '데모 모드'); }
   document.getElementById('concernEcho').textContent='💭 "'+concern+'"';
@@ -929,8 +941,7 @@ function initBg(){
 /* ── 초기화 ── */
 (function init(){
   if(CONFIG.LOGO_URL) document.getElementById('brandLogo').innerHTML='<img src="'+LOGO_SRC+'" alt="logo">';
-  const useAI=CONFIG.API_KEY && CONFIG.API_KEY.trim().length>10;
-  document.getElementById('demoNote').textContent=useAI?'AI 실시간':'데모 모드';
+  document.getElementById('demoNote').textContent=aiActive()?'AI 실시간':'데모 모드';
   if(CONFIG.BGM_URL){
     bgmEl=new Audio(CONFIG.BGM_URL); bgmEl.loop=false; bgmEl.volume=0.35;
     const restartBgm=()=>{ if(!soundOn) return; try{ bgmEl.currentTime=0; bgmEl.play().catch(()=>{}); }catch(e){} };
