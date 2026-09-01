@@ -64,6 +64,18 @@
   textarea:focus { border-color:#c9a96e; }
   textarea::placeholder { color:#6b5a9a; }
 
+  /* 이름 · 성별 */
+  .name-input { width:100%; max-width:420px; background:rgba(255,255,255,.07); border:1.5px solid rgba(201,169,110,.4);
+    border-radius:14px; color:#f0e6ff; font-size:1.2rem; font-family:inherit; padding:16px 20px; outline:none; text-align:center; margin-bottom:20px; }
+  .name-input:focus { border-color:#c9a96e; }
+  .name-input::placeholder { color:#6b5a9a; }
+  .name-input.shake { animation:shake .4s; border-color:#ff8fa0; }
+  .gender-row { display:flex; gap:14px; justify-content:center; margin-bottom:30px; }
+  .gender-btn { padding:16px 34px; border-radius:16px; cursor:pointer; font-size:1.1rem; font-weight:bold; font-family:inherit;
+    background:rgba(255,255,255,.05); border:1.5px solid rgba(201,169,110,.3); color:#e8dcff; transition:all .18s; }
+  .gender-btn:hover { border-color:#c9a96e; transform:translateY(-2px); }
+  .gender-btn.sel { border-color:#f5d78e; background:rgba(245,215,142,.22); box-shadow:0 0 14px rgba(245,215,142,.35); color:#fff; }
+
   /* 감정 선택 */
   .emo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:600px; width:100%; margin-bottom:26px; }
   .emo {
@@ -261,12 +273,27 @@
   </div>
   <h1 class="gold home-title">AI 타로 상담소</h1>
   <p class="sub">당신의 고민을 들려주세요.<br>AI가 별과 카드에 담긴 답을 읽어드립니다.</p>
-  <button class="btn" onclick="clickSound();go('concern')">✨ 체험 시작하기</button>
+  <button class="btn" onclick="clickSound();go('profile')">✨ 체험 시작하기</button>
+</section>
+
+<!-- 이름 · 성별 -->
+<section class="screen" id="screen-profile">
+  <h1 style="font-size:1.8rem; margin-bottom:10px;">🌙 당신을 알려주세요</h1>
+  <p class="sub" style="margin-bottom:26px;">이름과 성별을 입력하면 더 맞춤화된 리딩을 받을 수 있어요.</p>
+  <input type="text" id="nameInput" class="name-input" placeholder="이름을 입력하세요" maxlength="12" autocomplete="off">
+  <div class="gender-row" id="genderRow">
+    <button class="gender-btn" data-g="남성" onclick="selectGender('남성',this)">👦 남성</button>
+    <button class="gender-btn" data-g="여성" onclick="selectGender('여성',this)">👧 여성</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn-ghost" onclick="clickSound();resetAll()">← 처음으로</button>
+    <button class="btn" onclick="submitProfile()">다음 →</button>
+  </div>
 </section>
 
 <!-- 고민 입력 -->
 <section class="screen" id="screen-concern">
-  <h1 style="font-size:1.8rem; margin-bottom:10px;">💭 어떤 고민이 있으신가요?</h1>
+  <h1 id="concernTitle" style="font-size:1.8rem; margin-bottom:10px;">💭 어떤 고민이 있으신가요?</h1>
   <p class="sub" style="margin-bottom:24px;">마음속 이야기를 자유롭게 적어주세요.</p>
   <textarea id="concernInput" placeholder="예) 요즘 진로 때문에 너무 막막하고 불안해요. 지금 준비하는 길이 맞는 걸까요?"></textarea>
   <div class="btn-row">
@@ -430,7 +457,20 @@ const LUCKY={
 };
 
 /* ── 상태 ── */
-let concern="", emotions=[], zodiac="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="", lastBlocks=[];
+let userName="", userGender="", concern="", emotions=[], zodiac="", chosen=[], resetTimer=null, lastLucky=null, lastFinal="", lastLine="", lastBlocks=[];
+function selectGender(g,el){
+  userGender=g; clickSound();
+  document.querySelectorAll('.gender-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function submitProfile(){
+  const ta=document.getElementById('nameInput'); const v=ta.value.trim();
+  if(!v){ showToast('🌙 이름을 입력해주세요'); ta.classList.remove('shake'); void ta.offsetWidth; ta.classList.add('shake'); ta.focus(); return; }
+  if(!userGender){ showToast('🌙 성별을 선택해주세요'); return; }
+  userName=v; clickSound();
+  document.getElementById('concernTitle').textContent = `💭 ${userName}님, 어떤 고민이 있으신가요?`;
+  go('concern');
+}
 function emotionText(){ return emotions.join(', '); }
 let soundOn=true, audioCtx=null, bgmEl=null, ytPlayer=null, ytReady=false, userGestured=false;
 // 로고는 이미 투명 처리된 내장(data URI) 이미지를 그대로 사용 → file://에서도 안전 (캔버스 taint 없음)
@@ -708,7 +748,9 @@ function redrawCards(){
 }
 function resetAll(){
   clearTimeout(resetTimer);
-  concern="";emotions=[];zodiac="";chosen=[];
+  userName="";userGender="";concern="";emotions=[];zodiac="";chosen=[];
+  const ni=document.getElementById('nameInput'); if(ni) ni.value='';
+  document.querySelectorAll('.gender-btn.sel').forEach(b=>b.classList.remove('sel'));
   document.querySelectorAll('.emo.sel').forEach(el=>el.classList.remove('sel'));
   const eb=document.getElementById('emoNext'); if(eb){ eb.style.opacity='.4'; eb.style.pointerEvents='none'; }
   document.getElementById('concernInput').value='';
@@ -734,6 +776,8 @@ function buildPrompt(){
   return `당신은 따뜻하고 통찰력 있는 타로 상담가입니다. ${CONFIG.TONE} 한국어로 답하세요.
 아래 [고민]을 중심축으로 삼아, 뽑은 3장의 카드를 고민과 "유기적으로 엮어" 해석하세요. 카드의 사전적 의미만 나열하지 말고, 반드시 이 사람의 고민 상황에 직접 대입해 구체적으로 풀어주세요.
 
+[이름] ${userName||'미입력'} (해석 중 한두 번 자연스럽게 "${userName}님"으로 불러주세요)
+[성별] ${userGender||'미선택'}
 [고민] ${concern}
 [선택한 감정] ${emotionText()}
 [별자리] ${zodiac||'미선택'}
@@ -792,9 +836,9 @@ async function callAI(){
 /* ══ 데모용 로컬 해석 ══ */
 function localReading(){
   const [p,c,f]=chosen; const m=x=>x.rev?x.card.dn:x.card.up; const a=x=>x.rev?x.card.da:x.card.ua;
-  const emo=emotionText()||'지금의 마음';
+  const emo=emotionText()||'지금의 마음'; const nm=userName?userName+'님, ':'';
   const blocks=[
-    `"${concern}" — 이 고민이 시작된 뿌리에 '${p.card.ko}' 카드가 놓였어요. ${m(p)}의 기운이 지금 상황을 만든 배경이에요. **그동안 쌓아온 선택과 경험들이 지금의 고민으로 이어진 것**이지, 우연히 생긴 일이 아니에요. ${a(p)}`,
+    `${nm}"${concern}" — 이 고민이 시작된 뿌리에 '${p.card.ko}' 카드가 놓였어요. ${m(p)}의 기운이 지금 상황을 만든 배경이에요. **그동안 쌓아온 선택과 경험들이 지금의 고민으로 이어진 것**이지, 우연히 생긴 일이 아니에요. ${a(p)}`,
     `지금 '${emo}'을(를) 느끼고 계시죠. 현재 자리의 '${c.card.ko}' 카드는 ${m(c)}를 말하는데, 그 마음과 정확히 맞닿아 있어요. **그렇게 느끼는 건 너무 자연스러운 거예요** — 당신이 이 문제를 진심으로 마주하고 있다는 증거니까요. 억누르기보다 있는 그대로 인정해주는 것이 첫걸음이에요. ${a(c)}`,
     `그렇다면 이제 무엇을 하면 좋을까요. 미래 자리의 '${f.card.ko}' 카드는 ${m(f)}를 향해 가라고 알려줘요. 현실적으로 이렇게 시작해보세요 — ① **지금 느끼는 마음을 노트에 3줄로 적어** 생각을 정리하고, ② 이번 주 안에 **아주 작은 행동 하나**(대화하기·정보 찾기 등)를 실제로 해보고, ③ 혼자 끙끙대지 말고 믿을 만한 한 사람에게 털어놓아 보세요. ${a(f)}`,
   ];
